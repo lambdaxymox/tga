@@ -1,4 +1,5 @@
-use std::io::Read;
+use std::error;
+use std::fmt;
 use std::io;
 
 const TGA_HEADER_LENGTH: usize = 18;
@@ -65,6 +66,59 @@ impl TgaHeader {
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum TgaError<'a> {
+    CorruptTgaHeader,
+    Not24BitUncompressedRgb,
+    IncompleteIdString(&'a error::Error),
+    IncompleteColourMap(&'a error::Error),
+    IncompleteImageData(&'a error::Error),
+}
+
+impl<'a> fmt::Display for TgaError<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        match *self {
+            TgaError::CorruptTgaHeader => write!(f, "CorruptTgaHeader"),
+            TgaError::Not24BitUncompressedRgb => write!(f, "Not24BitUncompressedRgb"),
+            TgaError::IncompleteIdString(_) => write!(f, "IncompleteIdString"),
+            TgaError::IncompleteColourMap(_) => write!(f, "IncompleteColourMap"),
+            TgaError::IncompleteImageData(_) => write!(f, "IncompleteImageData"),
+        }
+    }
+}
+
+impl<'a> error::Error for TgaError<'a> {
+    fn description(&self) -> &str {
+        match *self {
+            TgaError::CorruptTgaHeader => {
+                "The TGA header is too short, too long, or it is corrupted."
+            }
+            TgaError::Not24BitUncompressedRgb => {
+                "The TGA image is not a 24 bit uncompressed RGB image."
+            }
+            TgaError::IncompleteIdString(_) => {
+                "The image identification is either corrupted, or it is the wrong length."
+            }
+            TgaError::IncompleteColourMap(_) => {
+                "The colour map is either corrupted, or it is the wrong length."
+            }
+            TgaError::IncompleteImageData(_) => {
+                "The TGA image data is either corrupted, or it is the wrong length."
+            }
+        }
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        match *self {
+            TgaError::CorruptTgaHeader => None,
+            TgaError::Not24BitUncompressedRgb => None,
+            TgaError::IncompleteIdString(e) => Some(e),
+            TgaError::IncompleteColourMap(e) => Some(e),
+            TgaError::IncompleteImageData(e) => Some(e),
+        }
+    }
+}
+
 pub struct TgaImage {
     header: TgaHeader,
     image_identification: Box<Vec<u8>>,
@@ -92,9 +146,7 @@ impl TgaImage {
 
         // Check the header.
         if header.data_type_code != 2 {
-            return Err(
-                // Fail here.
-            );
+            return Err(TgaError::Not24BitUncompressedRgb);
         }
 
         if header.bits_per_pixel != 24 {
@@ -115,8 +167,8 @@ impl TgaImage {
         for _ in 0..header.id_length {
             let byte = bytes.next();
             match byte {
-                Some(val) => image_identification.push(val.unwrap()),
-                None => {
+                Some(Ok(val)) => image_identification.push(val),
+                _ => {
                     return Err(
                         // Fail here.
                     );
@@ -130,7 +182,7 @@ impl TgaImage {
         for _ in 0..colour_map_size {
             let byte = bytes.next();
             match byte {
-                Some(val) => colour_map_data.push(val.unwrap()),
+                Some(Ok(val)) => colour_map_data.push(val),
                 None => {
                     return Err(
                         // Fail here.
@@ -148,7 +200,7 @@ impl TgaImage {
         for _ in 0..image_size {
             let byte = bytes.next();
             match byte {
-                Some(val) => image_data.push(val.unwrap()),
+                Some(Ok(val)) => image_data.push(val),
                 None => {
                     return Err(
                         // Fail here.

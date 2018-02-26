@@ -4,23 +4,25 @@ use std::fs::File;
 use std::io::Read;
 use tga::TgaImage;
 
+const SAMPLE_IMAGE: &str = "sample/lena.tga";
+
 
 #[test]
 fn test_files_exist() {
-    let file = File::open("sample/lena.tga");
+    let file = File::open(SAMPLE_IMAGE);
     assert!(file.is_ok());
 }
 
 #[test]
 fn test_parse_from_file_succeeds() {
-    let mut file = File::open("sample/lena.tga").unwrap();
+    let mut file = File::open(SAMPLE_IMAGE).unwrap();
     let image = TgaImage::parse_from_file(&mut file);
     assert!(image.is_ok());
 }
 
 #[test]
 fn test_parse_from_file() {
-    let mut file = File::open("sample/lena.tga").unwrap();
+    let mut file = File::open(SAMPLE_IMAGE).unwrap();
     let image = TgaImage::parse_from_file(&mut file).unwrap();
     assert_eq!(image.width(), 256);
     assert_eq!(image.height(), 256);
@@ -31,7 +33,7 @@ fn test_parse_from_file() {
 
 #[test]
 fn test_parse_from_buffer() {
-    let mut file = File::open("sample/lena.tga").unwrap();
+    let mut file = File::open(SAMPLE_IMAGE).unwrap();
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer).unwrap();
     let image = TgaImage::parse_from_buffer(&buffer);
@@ -40,10 +42,10 @@ fn test_parse_from_buffer() {
 
 #[test]
 fn test_parse_from_buffer_and_parse_from_file_should_yield_same_file() {
-    let mut file = File::open("sample/lena.tga").unwrap();
+    let mut file = File::open(SAMPLE_IMAGE).unwrap();
     let image_from_file = TgaImage::parse_from_file(&mut file).unwrap();
     
-    let mut file = File::open("sample/lena.tga").unwrap();
+    let mut file = File::open(SAMPLE_IMAGE).unwrap();
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer).unwrap();
     let image_from_buffer = TgaImage::parse_from_buffer(&buffer).unwrap();
@@ -53,10 +55,10 @@ fn test_parse_from_buffer_and_parse_from_file_should_yield_same_file() {
 
 #[test]
 fn test_tga_image_iterator() {
-    let mut file = File::open("sample/lena.tga").unwrap();
+    let mut file = File::open(SAMPLE_IMAGE).unwrap();
     let image_from_file = TgaImage::parse_from_file(&mut file).unwrap();
     
-    let mut file = File::open("sample/lena.tga").unwrap();
+    let mut file = File::open(SAMPLE_IMAGE).unwrap();
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer).unwrap();
     let image_from_buffer = TgaImage::parse_from_buffer(&buffer).unwrap();

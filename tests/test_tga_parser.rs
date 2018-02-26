@@ -50,3 +50,21 @@ fn test_parse_from_buffer_and_parse_from_file_should_yield_same_file() {
 
     assert_eq!(image_from_file, image_from_buffer);
 }
+
+#[test]
+fn test_tga_image_iterator() {
+    let mut file = File::open("sample/lena.tga").unwrap();
+    let image_from_file = TgaImage::parse_from_file(&mut file).unwrap();
+    
+    let mut file = File::open("sample/lena.tga").unwrap();
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer).unwrap();
+    let image_from_buffer = TgaImage::parse_from_buffer(&buffer).unwrap();
+
+    let pixels_from_file = image_from_file.pixels();
+    let pixels_from_buffer = image_from_buffer.pixels();
+
+    for (pixel_ff, pixel_fb) in pixels_from_file.zip(pixels_from_buffer) {
+        assert_eq!(pixel_ff, pixel_fb);
+    } 
+}

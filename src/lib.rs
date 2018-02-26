@@ -1,6 +1,7 @@
 use std::error;
 use std::fmt;
 use std::io::Read;
+use std::io;
 
 const TGA_HEADER_LENGTH: usize = 18;
 
@@ -47,7 +48,7 @@ impl TgaHeader {
     }
 
     fn colour_map_size(&self) -> usize {
-        let colour_map_length = (self.colour_map_length[1] << 8) as u16 
+        let colour_map_length = ((self.colour_map_length[1] as u16) << 8) 
                               | self.colour_map_length[0] as u16;
 
         // From the TGA specification, the color map depth will be one of
@@ -58,27 +59,27 @@ impl TgaHeader {
     }
 
     fn width(&self) -> usize {
-        (((self.width[1] << 8) as u16) | (self.width[0] as u16)) as usize
+        (((self.width[1] as u16) << 8) | (self.width[0] as u16)) as usize
     }
 
     fn height(&self) -> usize {
-        (((self.height[1] << 8) as u16) | (self.height[0] as u16)) as usize
+        ((((self.height[1] as u16) << 8) as u16) | (self.height[0] as u16)) as usize
     }
 }
 
-#[derive(Clone, Debug)]
-pub enum TgaError<'a> {
+#[derive(Debug)]
+pub enum TgaError {
     CorruptTgaHeader,
     Not24BitUncompressedRgb,
-    CorruptIdString(&'a error::Error),
-    CorruptColourMap(&'a error::Error),
-    CorruptImageData(&'a error::Error),
+    CorruptIdString(Box<io::Error>),
+    CorruptColourMap(Box<io::Error>),
+    CorruptImageData(Box<io::Error>),
     IncompleteIdString(usize, usize),
     IncompleteColourMap(usize, usize),
     IncompleteImageData(usize, usize),
 }
 
-impl<'a> fmt::Display for TgaError<'a> {
+impl fmt::Display for TgaError {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match *self {
             TgaError::CorruptTgaHeader => {
@@ -109,7 +110,7 @@ impl<'a> fmt::Display for TgaError<'a> {
     }
 }
 
-impl<'a> error::Error for TgaError<'a> {
+impl error::Error for TgaError {
     fn description(&self) -> &str {
         match *self {
             TgaError::CorruptTgaHeader => {
@@ -143,9 +144,9 @@ impl<'a> error::Error for TgaError<'a> {
         match *self {
             TgaError::CorruptTgaHeader => None,
             TgaError::Not24BitUncompressedRgb => None,
-            TgaError::CorruptIdString(e) => Some(e),
-            TgaError::CorruptColourMap(e) => Some(e),
-            TgaError::CorruptImageData(e) => Some(e),
+            TgaError::CorruptIdString(ref err) => Some(err),
+            TgaError::CorruptColourMap(ref err) => Some(err),
+            TgaError::CorruptImageData(ref err) => Some(err),
             TgaError::IncompleteIdString(_,_) => None,
             TgaError::IncompleteColourMap(_,_) => None,
             TgaError::IncompleteImageData(_,_) => None,
@@ -200,7 +201,7 @@ impl TgaImage {
                 Some(Ok(val)) => image_identification.push(val),
                 Some(Err(err)) => {
                     return Err(
-                        TgaError::CorruptIdString(&err)
+                        TgaError::CorruptIdString(Box::new(err))
                     );
                 }
                 None => {
@@ -219,7 +220,7 @@ impl TgaImage {
                 Some(Ok(val)) => colour_map_data.push(val),
                 Some(Err(err)) => {
                     return Err (
-                        TgaError::CorruptColourMap(&err)
+                        TgaError::CorruptColourMap(Box::new(err))
                     );
                 }
                 None => {
@@ -242,7 +243,7 @@ impl TgaImage {
                 Some(Ok(val)) => image_data.push(val),
                 Some(Err(err)) => {
                     return Err (
-                        TgaError::CorruptImageData(&err)
+                        TgaError::CorruptImageData(Box::new(err))
                     );
                 }
                 None => {

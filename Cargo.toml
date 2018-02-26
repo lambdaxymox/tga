@@ -1,6 +1,11 @@
 [package]
-name = "tga"
+name = "libtga"
 version = "0.1.0"
 authors = ["Stallmanifold <stallmanifold@gmail.com>"]
+readme = "README.md"
+repository = "https://github.com/stallmanifold/libtga"
+
+[lib]
+name = "tga"
 
 [dependencies]

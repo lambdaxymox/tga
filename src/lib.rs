@@ -71,6 +71,10 @@ impl TgaHeader {
     fn height(&self) -> usize {
         ((((self.height[1] as u16) << 8) as u16) | (self.height[0] as u16)) as usize
     }
+
+    fn bits_per_pixel(&self) -> usize {
+        self.header.bits_per_pixel as usize
+    }
 }
 
 #[derive(Debug)]
@@ -362,6 +366,18 @@ impl TgaImage {
         );
 
         Ok(image)        
+    }
+
+    pub fn width(&self) -> usize {
+        self.header.width()
+    }
+
+    pub fn height(&self) -> usize {
+        self.header.height()
+    }
+
+    pub fn bits_per_pixel(&self) -> usize {
+        self.header.bits_per_pixel()
     }
 
 }

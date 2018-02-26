@@ -1,6 +1,5 @@
 extern crate tga;
 
-use std::io;
 use std::fs::File;
 use std::io::Read;
 use tga::TgaImage;
@@ -34,7 +33,7 @@ fn test_parse_from_file() {
 fn test_parse_from_buffer() {
     let mut file = File::open("sample/lena.tga").unwrap();
     let mut buffer = Vec::new();
-    let bytes_read = file.read_to_end(&mut buffer).unwrap();
+    file.read_to_end(&mut buffer).unwrap();
     let image = TgaImage::parse_from_buffer(&buffer);
     assert!(image.is_ok());
 }
@@ -46,7 +45,7 @@ fn test_parse_from_buffer_and_parse_from_file_should_yield_same_file() {
     
     let mut file = File::open("sample/lena.tga").unwrap();
     let mut buffer = Vec::new();
-    let bytes_read = file.read_to_end(&mut buffer).unwrap();
+    file.read_to_end(&mut buffer).unwrap();
     let image_from_buffer = TgaImage::parse_from_buffer(&buffer).unwrap();
 
     assert_eq!(image_from_file, image_from_buffer);

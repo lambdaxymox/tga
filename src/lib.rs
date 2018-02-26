@@ -56,12 +56,12 @@ impl TgaHeader {
         colour_map_length * colour_map_depth_bytes
     }
 
-    fn width(&self) -> u16 {
-        ((self.width[1] << 8) as u16) | (self.width[0] as u16)
+    fn width(&self) -> usize {
+        (((self.width[1] << 8) as u16) | (self.width[0] as u16)) as usize
     }
 
-    fn height(&self) -> u16 {
-        ((self.height[1] << 8) as u16) | (self.height[0] as u16)
+    fn height(&self) -> usize {
+        (((self.height[1] << 8) as u16) | (self.height[0] as u16)) as usize
     }
 }
 
@@ -73,45 +73,94 @@ pub struct TgaImage {
 }
 
 impl TgaImage {
+    pub fn new(
+        header: TgaHeader, 
+        image_identification: Box<Vec<u8>>, 
+        colour_map_data: Box<Vec<u8>>, 
+        image_data: Box<Vec<u8>>
+    ) -> TgaImage {
+        TgaImage {
+            header: header, 
+            image_identification: image_identification, 
+            colour_map_data: colour_map_data, 
+            image_data: image_data
+        }
+    }
+
     pub fn parse_from_buffer(buf: &[u8]) -> Result<TgaImage, TgaError> {
         let header = TgaHeader::parse_from_buffer(buf).unwrap();
 
         // Check the header.
         if header.data_type_code != 2 {
-            // Fail here.
+            return Err(
+                // Fail here.
+            );
         }
 
         if header.bits_per_pixel != 24 {
-            // Fail here.
+            return Err(
+                // Fail here.
+            );
         }
 
         if buf.len() < header.id_length as usize + TGA_HEADER_LENGTH {
-            // Fail here.
+            return Err(
+                // Fail here.
+            );
         }
 
-        let mut image_identification = Box::new(Vec::new());
         let slice = &buf[TGA_HEADER_LENGTH..buf.len()];
         let mut bytes = slice.bytes();
+        let mut image_identification = Box::new(Vec::new());
         for _ in 0..header.id_length {
             let byte = bytes.next();
             match byte {
-                Some(val) => image_identification.push(val),
+                Some(val) => image_identification.push(val.unwrap()),
                 None => {
-                    // Fail here.
+                    return Err(
+                        // Fail here.
+                    );
                 }
             }
         }
 
         let colour_map_size = header.colour_map_size();
+        
         let mut colour_map_data = Box::new(Vec::new());
         for _ in 0..colour_map_size {
             let byte = bytes.next();
             match byte {
-                Some(val) => colour_map_data.push(val),
+                Some(val) => colour_map_data.push(val.unwrap()),
                 None => {
-                    // Fail here.
+                    return Err(
+                        // Fail here.
+                    );
                 }
             }
         }
+
+        let width = header.width();
+        let height = header.height();
+        let bytes_per_pixel = (header.bits_per_pixel / 8) as usize;
+        let image_size = width * height * bytes_per_pixel;
+        
+        let mut image_data = Box::new(Vec::new());
+        for _ in 0..image_size {
+            let byte = bytes.next();
+            match byte {
+                Some(val) => image_data.push(val.unwrap()),
+                None => {
+                    return Err(
+                        // Fail here.
+                    );
+                }
+            }
+        }
+
+        let image = TgaImage::new(
+            header, image_identification, colour_map_data, image_data
+        );
+
+        Ok(image)
     }
 }

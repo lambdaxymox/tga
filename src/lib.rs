@@ -73,7 +73,7 @@ impl TgaHeader {
     }
 
     fn bits_per_pixel(&self) -> usize {
-        self.header.bits_per_pixel as usize
+        self.bits_per_pixel as usize
     }
 }
 

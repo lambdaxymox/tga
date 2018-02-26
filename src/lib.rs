@@ -21,7 +21,7 @@ pub struct TgaHeader {
 }
 
 impl TgaHeader {
-    fn parse_tga_header(buf: &[u8]) -> Option<TgaHeader> {
+    fn parse_from_buffer(buf: &[u8]) -> Option<TgaHeader> {
         if buf.len() >= TGA_HEADER_LENGTH {
             // The buffer must be at least the length (in bytes) of a TGA header.
             let header = TgaHeader {
@@ -43,5 +43,75 @@ impl TgaHeader {
         }
 
         None
+    }
+
+    fn colour_map_size(&self) -> u16 {
+        let colour_map_length = (self.colour_map_length[1] << 8) as u16 
+                              | self.colour_map_length[0] as u16;
+
+        // From the TGA specification, the color map depth will be one of
+        // 16, 24, or 32 bits. That is, it is always a multiple of 8.
+        let colour_map_depth_bytes = (self.colour_map_depth / 8) as u16;
+
+        colour_map_length * colour_map_depth_bytes
+    }
+
+    fn width(&self) -> u16 {
+        ((self.width[1] << 8) as u16) | (self.width[0] as u16)
+    }
+
+    fn height(&self) -> u16 {
+        ((self.height[1] << 8) as u16) | (self.height[0] as u16)
+    }
+}
+
+pub struct TgaImage {
+    header: TgaHeader,
+    image_identification: Box<Vec<u8>>,
+    colour_map_data: Box<Vec<u8>>,
+    image_data: Box<Vec<u8>>,
+}
+
+impl TgaImage {
+    pub fn parse_from_buffer(buf: &[u8]) -> Result<TgaImage, TgaError> {
+        let header = TgaHeader::parse_from_buffer(buf).unwrap();
+
+        // Check the header.
+        if header.data_type_code != 2 {
+            // Fail here.
+        }
+
+        if header.bits_per_pixel != 24 {
+            // Fail here.
+        }
+
+        if buf.len() < header.id_length as usize + TGA_HEADER_LENGTH {
+            // Fail here.
+        }
+
+        let mut image_identification = Box::new(Vec::new());
+        let slice = &buf[TGA_HEADER_LENGTH..buf.len()];
+        let mut bytes = slice.bytes();
+        for _ in 0..header.id_length {
+            let byte = bytes.next();
+            match byte {
+                Some(val) => image_identification.push(val),
+                None => {
+                    // Fail here.
+                }
+            }
+        }
+
+        let colour_map_size = header.colour_map_size();
+        let mut colour_map_data = Box::new(Vec::new());
+        for _ in 0..colour_map_size {
+            let byte = bytes.next();
+            match byte {
+                Some(val) => colour_map_data.push(val),
+                None => {
+                    // Fail here.
+                }
+            }
+        }
     }
 }

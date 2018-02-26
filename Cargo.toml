@@ -1,5 +1,5 @@
 [package]
-name = "libtga"
+name = "tga"
 version = "0.1.0"
 authors = ["Stallmanifold <stallmanifold@gmail.com>"]
 

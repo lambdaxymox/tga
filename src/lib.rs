@@ -172,6 +172,7 @@ impl error::Error for TgaError {
     }
 }
 
+#[derive(PartialEq, Eq, Debug)]
 pub struct TgaImage {
     header: TgaHeader,
     image_identification: Box<Vec<u8>>,
@@ -378,6 +379,18 @@ impl TgaImage {
 
     pub fn bits_per_pixel(&self) -> usize {
         self.header.bits_per_pixel()
+    }
+
+    pub fn color_map_type(&self) -> usize {
+        self.header.color_map_type as usize
+    }
+
+    pub fn data_type_code(&self) -> usize {
+        self.header.data_type_code as usize
+    }
+
+    pub fn header(&self) -> TgaHeader {
+        self.header
     }
 
     pub fn pixels(&self) -> PixelIter {

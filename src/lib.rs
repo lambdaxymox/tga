@@ -1,6 +1,6 @@
 use std::error;
 use std::fmt;
-use std::io;
+use std::io::Read;
 
 const TGA_HEADER_LENGTH: usize = 18;
 
@@ -70,9 +70,12 @@ impl TgaHeader {
 pub enum TgaError<'a> {
     CorruptTgaHeader,
     Not24BitUncompressedRgb,
-    IncompleteIdString(&'a error::Error),
-    IncompleteColourMap(&'a error::Error),
-    IncompleteImageData(&'a error::Error),
+    CorruptIdString(&'a error::Error),
+    CorruptColourMap(&'a error::Error),
+    CorruptImageData(&'a error::Error),
+    IncompleteIdString,
+    IncompleteColourMap,
+    IncompleteImageData,
 }
 
 impl<'a> fmt::Display for TgaError<'a> {
@@ -80,9 +83,12 @@ impl<'a> fmt::Display for TgaError<'a> {
         match *self {
             TgaError::CorruptTgaHeader => write!(f, "CorruptTgaHeader"),
             TgaError::Not24BitUncompressedRgb => write!(f, "Not24BitUncompressedRgb"),
-            TgaError::IncompleteIdString(_) => write!(f, "IncompleteIdString"),
-            TgaError::IncompleteColourMap(_) => write!(f, "IncompleteColourMap"),
-            TgaError::IncompleteImageData(_) => write!(f, "IncompleteImageData"),
+            TgaError::CorruptIdString(_) => write!(f, "CorruptIdString"),
+            TgaError::CorruptColourMap(_) => write!(f, "CorruptColourMap"),
+            TgaError::CorruptImageData(_) => write!(f, "CorruptImageData"),
+            TgaError::IncompleteIdString => write!(f, "IncompleteIdString"),
+            TgaError::IncompleteColourMap => write!(f, "IncompleteColourMap"),
+            TgaError::IncompleteImageData => write!(f, "IncompleteImageData"),
         }
     }
 }
@@ -96,14 +102,23 @@ impl<'a> error::Error for TgaError<'a> {
             TgaError::Not24BitUncompressedRgb => {
                 "The TGA image is not a 24 bit uncompressed RGB image."
             }
-            TgaError::IncompleteIdString(_) => {
+            TgaError::CorruptIdString(_) => {
                 "The image identification is either corrupted, or it is the wrong length."
             }
-            TgaError::IncompleteColourMap(_) => {
+            TgaError::CorruptColourMap(_) => {
                 "The colour map is either corrupted, or it is the wrong length."
             }
-            TgaError::IncompleteImageData(_) => {
+            TgaError::CorruptImageData(_) => {
                 "The TGA image data is either corrupted, or it is the wrong length."
+            }
+            TgaError::IncompleteIdString => {
+                "The ID string is too short."
+            }
+            TgaError::IncompleteColourMap => {
+                "The colour map is too short."
+            }
+            TgaError::IncompleteImageData => {
+                "The number of pixels in the image is less than what was reported."
             }
         }
     }
@@ -112,9 +127,12 @@ impl<'a> error::Error for TgaError<'a> {
         match *self {
             TgaError::CorruptTgaHeader => None,
             TgaError::Not24BitUncompressedRgb => None,
-            TgaError::IncompleteIdString(e) => Some(e),
-            TgaError::IncompleteColourMap(e) => Some(e),
-            TgaError::IncompleteImageData(e) => Some(e),
+            TgaError::CorruptIdString(e) => Some(e),
+            TgaError::CorruptColourMap(e) => Some(e),
+            TgaError::CorruptImageData(e) => Some(e),
+            TgaError::IncompleteIdString => None,
+            TgaError::IncompleteColourMap => None,
+            TgaError::IncompleteImageData => None,
         }
     }
 }
@@ -150,15 +168,11 @@ impl TgaImage {
         }
 
         if header.bits_per_pixel != 24 {
-            return Err(
-                // Fail here.
-            );
+            return Err(TgaError::Not24BitUncompressedRgb);
         }
 
         if buf.len() < header.id_length as usize + TGA_HEADER_LENGTH {
-            return Err(
-                // Fail here.
-            );
+            return Err(TgaError::CorruptTgaHeader);
         }
 
         let slice = &buf[TGA_HEADER_LENGTH..buf.len()];
@@ -168,9 +182,14 @@ impl TgaImage {
             let byte = bytes.next();
             match byte {
                 Some(Ok(val)) => image_identification.push(val),
-                _ => {
+                Some(Err(err)) => {
                     return Err(
-                        // Fail here.
+                        TgaError::CorruptIdString(&err)
+                    );
+                }
+                None => {
+                    return Err(
+                        TgaError::IncompleteIdString
                     );
                 }
             }
@@ -183,9 +202,14 @@ impl TgaImage {
             let byte = bytes.next();
             match byte {
                 Some(Ok(val)) => colour_map_data.push(val),
+                Some(Err(err)) => {
+                    return Err (
+                        TgaError::CorruptColourMap(&err)
+                    );
+                }
                 None => {
                     return Err(
-                        // Fail here.
+                        TgaError::IncompleteColourMap
                     );
                 }
             }
@@ -201,9 +225,14 @@ impl TgaImage {
             let byte = bytes.next();
             match byte {
                 Some(Ok(val)) => image_data.push(val),
+                Some(Err(err)) => {
+                    return Err (
+                        TgaError::CorruptImageData(&err)
+                    );
+                }
                 None => {
                     return Err(
-                        // Fail here.
+                        TgaError::IncompleteImageData
                     );
                 }
             }

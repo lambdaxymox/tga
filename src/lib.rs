@@ -49,7 +49,7 @@ impl TgaHeader {
 
     fn parse_from_file<F: Read>(f: &mut F) -> Option<TgaHeader> {
         let mut buf = [0; TGA_HEADER_LENGTH];
-        f.read(&mut buf);
+        f.read(&mut buf).unwrap();
         Self::parse_from_buffer(&buf)
     }
 
@@ -380,4 +380,33 @@ impl TgaImage {
         self.header.bits_per_pixel()
     }
 
+    pub fn pixels(&self) -> PixelIter {
+        PixelIter {
+            inner: self.image_data.as_slice(),
+            current: [0; 3],
+            index: 0,
+        }
+    }
+}
+
+pub struct PixelIter<'a> {
+    inner: &'a [u8],
+    current: [u8; 3],
+    index: usize,
+}
+
+impl<'a> Iterator for PixelIter<'a> {
+    type Item = [u8; 3];
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index > self.inner.len() {
+            self.index += 3;
+            self.current[0] = self.inner[self.index];
+            self.current[1] = self.inner[self.index + 1];
+            self.current[2] = self.inner[self.index + 2];
+            return Some(self.current);
+        }
+
+        None
+    }
 }

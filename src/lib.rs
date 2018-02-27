@@ -420,11 +420,12 @@ impl<'a> Iterator for PixelIter<'a> {
     type Item = [u8; 3];
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.index > self.inner.len() {
-            self.index += 3;
+        if self.index < self.inner.len() {
             self.current[0] = self.inner[self.index];
             self.current[1] = self.inner[self.index + 1];
             self.current[2] = self.inner[self.index + 2];
+            self.index += 3;
+            
             return Some(self.current);
         }
 

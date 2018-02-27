@@ -35,6 +35,7 @@ fn test_parse_from_file() {
 fn test_parse_from_buffer_image_data_should_be_non_empty() {
     let mut file = File::open(SAMPLE_IMAGE).unwrap();
     let image = TgaImage::parse_from_file(&mut file).unwrap();
+
     assert_ne!(image.image_data_length(), 0);
     assert_eq!(image.image_data_length(), image.width() * image.height());
 }
@@ -76,5 +77,14 @@ fn test_tga_image_iterator() {
 
     for (pixel_ff, pixel_fb) in pixels_from_file.zip(pixels_from_buffer) {
         assert_eq!(pixel_ff, pixel_fb);
-    } 
+    }
+}
+
+#[test]
+fn test_tga_image_iterator_should_return_every_pixel_in_image() {
+    let mut file = File::open(SAMPLE_IMAGE).unwrap();
+    let image = TgaImage::parse_from_file(&mut file).unwrap();
+    let pixels = image.pixels().collect::<Vec<[u8; 3]>>();
+
+    assert_eq!(pixels.len(), image.image_data_length());
 }

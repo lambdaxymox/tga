@@ -32,6 +32,14 @@ fn test_parse_from_file() {
 }
 
 #[test]
+fn test_parse_from_buffer_image_data_should_be_non_empty() {
+    let mut file = File::open(SAMPLE_IMAGE).unwrap();
+    let image = TgaImage::parse_from_file(&mut file).unwrap();
+    assert_ne!(image.image_data_length(), 0);
+    assert_eq!(image.image_data_length(), image.width() * image.height());
+}
+
+#[test]
 fn test_parse_from_buffer() {
     let mut file = File::open(SAMPLE_IMAGE).unwrap();
     let mut buffer = Vec::new();

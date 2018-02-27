@@ -400,6 +400,14 @@ impl TgaImage {
             index: 0,
         }
     }
+
+    pub fn image_data_length(&self) -> usize {
+        self.image_data.len() / 3
+    }
+
+    pub fn image_data_length_bytes(&self) -> usize {
+        self.image_data.len()
+    }
 }
 
 pub struct PixelIter<'a> {

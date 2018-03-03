@@ -60,8 +60,8 @@ impl TgaHeader {
     /// starts at the beginning of the buffer.
     ///
     fn parse_from_buffer(buf: &[u8]) -> Option<TgaHeader> {
+        // The buffer must be at least the length (in bytes) of a TGA header.
         if buf.len() >= TGA_HEADER_LENGTH {
-            // The buffer must be at least the length (in bytes) of a TGA header.
             let header = TgaHeader {
                 id_length: buf[0],
                 color_map_type: buf[1],

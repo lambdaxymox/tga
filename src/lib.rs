@@ -224,6 +224,9 @@ impl error::Error for TgaError {
     }
 }
 
+///
+/// A `TgaImage` is a structure containing a TGA image.
+///
 #[derive(PartialEq, Eq, Debug)]
 pub struct TgaImage {
     /// The TGA header.
@@ -243,6 +246,9 @@ pub struct TgaImage {
 }
 
 impl TgaImage {
+    ///
+    /// Construct a new TGA image.
+    ///
     pub fn new(
         header: TgaHeader, 
         image_identification: Box<Vec<u8>>, 

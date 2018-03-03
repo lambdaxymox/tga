@@ -1,11 +1,11 @@
 //! # TGA Library
 //!
-//! The library `libtga` is a library for reading an writing Truevision TARGA 
-//! format images. The TGA format is capable of representing multiple types of
-//! bitmapped images including  black and white, indexed colour, RGB colour, 
-//! and various compressed representations. The minimal implementation is a 
-//! 24 bit unmapped RGB colour image. This library presently implements 24 bit
-//! unmapped uncompressed RBG images only.
+//! The library `libtga` is a pure Rust library for reading an writing Truevision
+//! TARGA format images. The TGA format is capable of representing multiple 
+//! types of bitmapped images including  black and white, indexed colour, RGB
+//! colour, and various compressed representations. The minimal implementation
+//! is a 24 bit unmapped RGB colour image. This library presently implements 24
+//! bit unmapped uncompressed RBG images only.
 //!
 use std::error;
 use std::fmt;

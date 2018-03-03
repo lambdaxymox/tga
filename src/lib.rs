@@ -13,7 +13,7 @@ use std::io::{Read, Seek, SeekFrom};
 use std::io;
 
 /// The length of a TGA Header is always 18 bytes.
-const TGA_HEADER_LENGTH: usize = 18;
+pub const TGA_HEADER_LENGTH: usize = 18;
 
 
 ///

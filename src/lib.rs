@@ -22,7 +22,10 @@ const TGA_HEADER_LENGTH: usize = 18;
 ///
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct TgaHeader {
-    /// The length of the image identification string, in bytes.
+    /// The length of the image identification string, in bytes. The 
+    /// image identification data immediately follows the header itself. Further
+    /// identification data can be placed after the image data at the end of the
+    /// file.
     id_length: u8,
     /// The type of a colour map. This field contains either a `0` or a `1`.
     /// Here, `0` means that no colour map is included, and a `1` indicates that 
@@ -41,9 +44,9 @@ pub struct TgaHeader {
     x_origin: [u8; 2],
     /// The Y coordinate of the lower left corner of an image, in little endian byte order.
     y_origin: [u8; 2],
-    /// The width, in pixels, of an image.
+    /// The width of an image in pixels.
     width: [u8; 2],
-    /// The height, in pixels, of an image.
+    /// The height of an image in pixels.
     height: [u8; 2],
     /// The number of bits per pixel. For an unmapped RGB file this is 24 bits.
     bits_per_pixel: u8,
@@ -247,6 +250,12 @@ impl TgaImage {
         }
     }
 
+    ///
+    /// Parse a TGA image from a buffer. We assume that the image to be parsed
+    /// starts at the beginning of the buffer. In order to parse correctly,
+    /// the bytes of the buffer must conform to the TGA image format. The 
+    /// first 18 bytes of the image should be the TGA header.
+    ///
     pub fn parse_from_buffer(buf: &[u8]) -> Result<TgaImage, TgaError> {
         let header = TgaHeader::parse_from_buffer(buf).unwrap();
 
@@ -338,6 +347,12 @@ impl TgaImage {
         Ok(image)
     }
 
+    ///
+    /// Parse a TGA image from a file or stream. We assume that the image to be parsed
+    /// starts at the beginning of the buffer. In order to parse correctly,
+    /// the bytes of the file or stream must conform to the TGA image format. The 
+    /// first 18 bytes of the image should be the TGA header.
+    ///
     pub fn parse_from_file<F: Read + Seek>(f: &mut F) -> Result<TgaImage, TgaError> {
         let header = TgaHeader::parse_from_file(f).unwrap();
         let offset = match f.seek(SeekFrom::Start(TGA_HEADER_LENGTH as u64)) {
@@ -508,6 +523,11 @@ impl TgaImage {
         self.image_data.len()
     }
 
+    ///
+    /// The extended image identification data. This is the data that follows after the
+    /// the image data that is too large for the image identification field that follows
+    /// the TGA image's header.
+    ///
     pub fn extended_image_identification(&self) -> &[u8] {
         &self.extended_image_identification
     }

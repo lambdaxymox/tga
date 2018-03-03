@@ -226,10 +226,19 @@ impl error::Error for TgaError {
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct TgaImage {
+    /// The TGA header.
     header: TgaHeader,
+    /// The image identification data. This is typically omitted, but it can
+    /// up to 255 character long. If more data is needed, it can be placed
+    /// after the image data.
     image_identification: Box<Vec<u8>>,
+    /// The colour map data, as specified by the colour map specification.
     colour_map_data: Box<Vec<u8>>,
+    /// The raw pixels themselves.
     image_data: Box<Vec<u8>>,
+    /// The extended image identification data. This field is the spillover from
+    /// the image identification field if the image identification data is too
+    /// long to fit into the image indentification field.
     extended_image_identification: Box<Vec<u8>>,
 }
 
@@ -524,9 +533,18 @@ impl TgaImage {
     }
 
     ///
-    /// The extended image identification data. This is the data that follows after the
-    /// the image data that is too large for the image identification field that follows
-    /// the TGA image's header.
+    /// The function `image_identification` returns a slice into the 
+    /// image identification field. This is a free-form field that immediately
+    /// follows the header.
+    ///
+    pub fn image_identification(&self) -> &[u8] {
+        &self.image_identification
+    }
+
+    ///
+    /// The function `extended_image_identification` returns a slice to the 
+    /// extended image identification data. This is the data that follows after
+    /// the image data that is too large for the image identification field.
     ///
     pub fn extended_image_identification(&self) -> &[u8] {
         &self.extended_image_identification

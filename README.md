@@ -5,7 +5,7 @@ This package is a Rust implementation of the minimal implementation of the Truev
 To use `libtga`, add the following line to your `Cargo.toml` file.
 ```
 [dependencies]
-libtga = "0.2.3"
+libtga = "0.2.4"
 ```
 Then in your `lib.rs`, `main.rs` or wherever your main source file is, add the crate declaration
 ```rust

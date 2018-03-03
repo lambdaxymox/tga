@@ -180,10 +180,10 @@ fn test_tga_image_iterator_should_return_every_pixel_in_image() {
 
 ///
 /// In a TGA image where every pixel has one color, each pixel in the image data
-/// should be exactly the same value.
+/// should have exactly the same value.
 ///
 #[test]
-fn test_tga_image_should_with_one_color_should_have_every_pixel_the_same_color() {
+fn test_tga_image_should_with_one_color_should_return_the_same_color_with_every_pixel() {
     let mut file = File::open(sample::COLOR_TGA).unwrap();
     let image = TgaImage::parse_from_file(&mut file).unwrap();
 

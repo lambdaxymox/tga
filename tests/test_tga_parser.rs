@@ -8,14 +8,6 @@ mod sample;
 
 
 #[test]
-fn test_files_exist() {
-    let file = File::open(sample::LENA_TGA);
-    assert!(file.is_ok());
-    let file = File::open(sample::COLOR_TGA);
-    assert!(file.is_ok());
-}
-
-#[test]
 fn test_parse_from_file_succeeds() {
     let mut file = File::open(sample::LENA_TGA).unwrap();
     let image = TgaImage::parse_from_file(&mut file);

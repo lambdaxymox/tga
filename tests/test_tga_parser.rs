@@ -18,11 +18,11 @@ fn test_parse_from_file_succeeds() {
 fn test_parse_from_file() {
     let mut file = File::open(sample::LENA_TGA).unwrap();
     let image = TgaImage::parse_from_file(&mut file).unwrap();
-    assert_eq!(image.width(), 512);
-    assert_eq!(image.height(), 512);
-    assert_eq!(image.bits_per_pixel(), 24);
-    assert_eq!(image.color_map_type(), 0);
-    assert_eq!(image.data_type_code(), 2);
+    assert_eq!(image.width(), sample::LENA_TGA_WIDTH);
+    assert_eq!(image.height(), sample::LENA_TGA_HEIGHT);
+    assert_eq!(image.bits_per_pixel(), sample::LENA_TGA_BITS_PER_PIXEL);
+    assert_eq!(image.color_map_type(), sample::LENA_TGA_COLOR_MAP_TYPE);
+    assert_eq!(image.data_type_code(), sample::LENA_TGA_DATA_TYPE_CODE);
 }
 
 #[test]

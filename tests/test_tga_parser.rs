@@ -39,6 +39,14 @@ fn test_cases<'a>() -> TestCases<'a> {
                 color_map_type: sample::COLOR_TGA_COLOR_MAP_TYPE,
                 data_type_code: sample::COLOR_TGA_DATA_TYPE_CODE,
             },
+            TestCase {
+                filename: sample::ONE_TGA,
+                width: sample::ONE_TGA_WIDTH,
+                height: sample::ONE_TGA_HEIGHT,
+                bits_per_pixel: sample::ONE_TGA_BITS_PER_PIXEL,
+                color_map_type: sample::ONE_TGA_COLOR_MAP_TYPE,
+                data_type_code: sample::ONE_TGA_DATA_TYPE_CODE,
+            }
         ]
     }
 }

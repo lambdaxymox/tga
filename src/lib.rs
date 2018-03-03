@@ -15,6 +15,10 @@ use std::io;
 /// The length of a TGA Header is always 18 bytes.
 pub const TGA_HEADER_LENGTH: usize = 18;
 
+/// Parse a TGA image from an input stream.
+pub fn parse<S: Read + Seek>(stream: &mut S) -> Result<TgaImage, TgaError> {
+    TgaImage::parse_from_file(stream)
+}
 
 ///
 /// A `TgaHeader` type is a structure containing all the infomation about
@@ -355,7 +359,7 @@ impl TgaImage {
             bytes.map(|byte| byte.unwrap()).collect::<Vec<u8>>()
         );
 
-        let image = TgaImage::new(
+        let image = Self::new(
             header, image_identification, colour_map_data, image_data, extended_image_identification
         );
 
@@ -456,7 +460,7 @@ impl TgaImage {
             bytes.map(|byte| byte.unwrap()).collect::<Vec<u8>>()
         );
 
-        let image = TgaImage::new(
+        let image = Self::new(
             header, image_identification, colour_map_data, image_data, extended_image_identification
         );
 

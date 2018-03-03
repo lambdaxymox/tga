@@ -1,3 +1,6 @@
+//! # TGA Library
+//!
+//! The library `libtga` is a 
 use std::error;
 use std::fmt;
 use std::io::{Read, Seek, SeekFrom};
@@ -424,18 +427,32 @@ impl TgaImage {
         Ok(image)        
     }
 
+    ///
+    /// The function `width` returns the width of a TGA image, in pixels.
+    ///
     pub fn width(&self) -> usize {
         self.header.width()
     }
 
+    ///
+    /// Return the height of a TGA image, in pixels.
+    ///
     pub fn height(&self) -> usize {
         self.header.height()
     }
 
+    ///
+    /// Return the bit depth per pixel in a TGA Image.
+    ///
     pub fn bits_per_pixel(&self) -> usize {
         self.header.bits_per_pixel()
     }
 
+    ///
+    /// Compute the colour map type. The colour map type is either `0` or `1`.
+    /// A `0` indicates that there is no colour map; a `1` indicates that a 
+    /// colour map is included.
+    ///
     pub fn color_map_type(&self) -> usize {
         self.header.color_map_type as usize
     }
@@ -444,10 +461,19 @@ impl TgaImage {
         self.header.data_type_code as usize
     }
 
+    ///
+    /// The function `header` produces a copy of the TGA header.
+    ///
     pub fn header(&self) -> TgaHeader {
         self.header
     }
 
+    ///
+    /// The function `pixels` generates an iterator over the pixels of the image.
+    /// It sweeps through the TGA image going from left to right in each row, and 
+    /// going from bottom to top. The first pixel returned is the bottom left corner;
+    /// the last pixel returned is the top right corner. 
+    ///
     pub fn pixels(&self) -> PixelIter {
         PixelIter {
             inner: self.image_data.as_slice(),
@@ -456,10 +482,22 @@ impl TgaImage {
         }
     }
 
+    ///
+    /// The function `image_data_length` returns the size of the image,
+    /// in the total number of pixels. This satisfies the following invariant.
+    /// ```
+    /// self.image_data_length() == self.width() * self.height()
+    /// ```
+    ///
     pub fn image_data_length(&self) -> usize {
         self.image_data.len() / 3
     }
 
+    ///
+    /// The function `image_data_length_bytes` computes the size of the 
+    /// image data, in the number of bytes. For an unmapped RGB image, this will
+    /// simply be `3 * image_data_length()`, since each RGB pixel is 3 bytes long.
+    ///
     pub fn image_data_length_bytes(&self) -> usize {
         self.image_data.len()
     }

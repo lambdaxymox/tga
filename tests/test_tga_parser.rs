@@ -100,7 +100,5 @@ fn test_tga_image_should_with_one_color_should_have_every_pixel_the_same_color()
     let mut pixels = image.pixels();
     let first_pixel = pixels.next().unwrap();
 
-    for pixel in pixels {
-        assert_eq!(pixel, first_pixel);
-    }
+    assert!(pixels.all(|pixel| pixel == first_pixel));
 }

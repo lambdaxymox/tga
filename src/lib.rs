@@ -3,26 +3,50 @@ use std::fmt;
 use std::io::{Read, Seek, SeekFrom};
 use std::io;
 
+/// The length of a TGA Header is always 18 bytes.
 const TGA_HEADER_LENGTH: usize = 18;
 
 
+///
+/// A `TgaHeader` type is a structure containing all the infomation about
+/// a TGA file.
+///
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct TgaHeader {
+    /// The length of the image identification string, in bytes.
     id_length: u8,
+    /// The type of a colour map. This field contains either a `0` or a `1`.
+    /// Here, `0` means that no colour map is included, and a `1` indicates that 
+    /// a colour map is included. 
     color_map_type: u8,
+    /// The type of image. The most common case is an image type of `2` which
+    /// indicates an unmapped uncompressed RGB file.
     data_type_code: u8,
+    /// The integer index of the first colour map entry.
     colour_map_origin: [u8; 2],
+    /// The number of colour map entries.
     colour_map_length: [u8; 2],
+    /// The number of bits in a colour map entry. There are 24 bits for a Targa 24 image.
     colour_map_depth: u8,
+    /// The X coordinate of the lower left corner of an image, in little endian byte order.
     x_origin: [u8; 2],
+    /// The Y coordinate of the lower left corner of an image, in little endian byte order.
     y_origin: [u8; 2],
+    /// The width, in pixels, of an image.
     width: [u8; 2],
+    /// The height, in pixels, of an image.
     height: [u8; 2],
+    /// The number of bits per pixel. For an unmapped RGB file this is 24 bits.
     bits_per_pixel: u8,
+    /// Image descriptor byte.
     image_descriptor: u8,
 }
 
 impl TgaHeader {
+    ///
+    /// Parse a TGA header from a buffer. We assume that the header to be parsed
+    /// starts at the beginning of the buffer.
+    ///
     fn parse_from_buffer(buf: &[u8]) -> Option<TgaHeader> {
         if buf.len() >= TGA_HEADER_LENGTH {
             // The buffer must be at least the length (in bytes) of a TGA header.
@@ -47,6 +71,11 @@ impl TgaHeader {
         None
     }
 
+    ///
+    /// Parse a TGA header from a file or other kind of stream. We assume that the header 
+    /// to be parsed starts at the beginning of the buffer. If this is not the case, the
+    /// parser will most likely reject the input since it cannot identify a correct header.
+    ///
     fn parse_from_file<F: Read>(f: &mut F) -> Option<TgaHeader> {
         let mut buf = [0; TGA_HEADER_LENGTH];
         f.read(&mut buf).unwrap();
@@ -58,20 +87,31 @@ impl TgaHeader {
                               | self.colour_map_length[0] as u16;
 
         // From the TGA specification, the color map depth will be one of
-        // 16, 24, or 32 bits. That is, it is always a multiple of 8.
+        // 16, 24, or 32 bits; it is always a multiple of 8. Therefore
+        // we can always safely divide by 8.
         let colour_map_depth_bytes = (self.colour_map_depth / 8) as u16;
 
         (colour_map_length * colour_map_depth_bytes) as usize
     }
 
+    ///
+    /// The width of a TGA image, in pixels.
+    ///
     fn width(&self) -> usize {
         (((self.width[1] as u16) << 8) | (self.width[0] as u16)) as usize
     }
 
+    ///
+    /// The height of a TGA image, in pixels.
+    ///
     fn height(&self) -> usize {
         ((((self.height[1] as u16) << 8) as u16) | (self.height[0] as u16)) as usize
     }
 
+    ///
+    /// The bit depth for each pixel. By default this will be 24 bits as the most
+    /// common TGA image type is a 24 bit unmapped uncompressed RGB image.
+    ///
     fn bits_per_pixel(&self) -> usize {
         self.bits_per_pixel as usize
     }
@@ -178,6 +218,7 @@ pub struct TgaImage {
     image_identification: Box<Vec<u8>>,
     colour_map_data: Box<Vec<u8>>,
     image_data: Box<Vec<u8>>,
+    extended_image_identification: Box<Vec<u8>>,
 }
 
 impl TgaImage {
@@ -185,13 +226,15 @@ impl TgaImage {
         header: TgaHeader, 
         image_identification: Box<Vec<u8>>, 
         colour_map_data: Box<Vec<u8>>, 
-        image_data: Box<Vec<u8>>
+        image_data: Box<Vec<u8>>,
+        extended_image_identification: Box<Vec<u8>>
     ) -> TgaImage {
         TgaImage {
             header: header, 
             image_identification: image_identification, 
             colour_map_data: colour_map_data, 
-            image_data: image_data
+            image_data: image_data,
+            extended_image_identification: extended_image_identification,
         }
     }
 
@@ -273,8 +316,14 @@ impl TgaImage {
             }
         }
 
+        // Parse the extended image identification information from the end
+        // of the image data field.
+        let extended_image_identification = Box::new(
+            bytes.map(|byte| byte.unwrap()).collect::<Vec<u8>>()
+        );
+
         let image = TgaImage::new(
-            header, image_identification, colour_map_data, image_data
+            header, image_identification, colour_map_data, image_data, extended_image_identification
         );
 
         Ok(image)
@@ -362,8 +411,14 @@ impl TgaImage {
             }
         }
 
+        // Parse the extended image identification information from the end
+        // of the image data field.
+        let extended_image_identification = Box::new(
+            bytes.map(|byte| byte.unwrap()).collect::<Vec<u8>>()
+        );
+
         let image = TgaImage::new(
-            header, image_identification, colour_map_data, image_data
+            header, image_identification, colour_map_data, image_data, extended_image_identification
         );
 
         Ok(image)        
@@ -408,6 +463,10 @@ impl TgaImage {
     pub fn image_data_length_bytes(&self) -> usize {
         self.image_data.len()
     }
+
+    pub fn extended_image_identification(&self) -> &[u8] {
+        &self.extended_image_identification
+    }
 }
 
 pub struct PixelIter<'a> {
@@ -432,3 +491,4 @@ impl<'a> Iterator for PixelIter<'a> {
         None
     }
 }
+

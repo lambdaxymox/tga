@@ -1,5 +1,5 @@
 # TGA Image Format Library
-This package is a Rust implementation of the minimal implementation of the Truevision TGA image format. In particular, this repository implements the features necessary to read and write 24 bit uncompressed RGB TGA image files. This is the minimum implementation necessary to be compliant with the TGA image format, as detailed [here](http://paulbourke.net/dataformats/tga/).
+This package is a Rust implementation of the minimal implementation of the Truevision TGA image format. In particular, this repository implements the features necessary to read and write 24 bit uncompressed RGB TGA image files, as detailed [here](http://paulbourke.net/dataformats/tga/).
 
 ## Usage
 To use `libtga`, add the following line to your `Cargo.toml` file.

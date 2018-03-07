@@ -136,7 +136,7 @@ impl TgaHeader {
 #[derive(Debug)]
 pub enum TgaError {
     CorruptTgaHeader,
-    Not24BitRgb,
+    Not24BitRgb(usize),
     CorruptIdString(Box<io::Error>),
     CorruptColourMap(Box<io::Error>),
     CorruptImageData(Box<io::Error>),
@@ -152,8 +152,8 @@ impl fmt::Display for TgaError {
             TgaError::CorruptTgaHeader => {
                 write!(f, "CorruptTgaHeader")
             }
-            TgaError::Not24BitRgb => {
-                write!(f, "Not24BitRgb")
+            TgaError::Not24BitRgb(got_type_code) => {
+                write!(f, "Not24BitRgb(got_type_code={})", got_type_code)
             }
             TgaError::CorruptIdString(_) => {
                 write!(f, "CorruptIdString")
@@ -186,7 +186,7 @@ impl error::Error for TgaError {
             TgaError::CorruptTgaHeader => {
                 "The TGA header data is corrupted."
             }
-            TgaError::Not24BitRgb => {
+            TgaError::Not24BitRgb(_) => {
                 "The TGA image is not a 24 bit TGA format RGB image."
             }
             TgaError::CorruptIdString(_) => {
@@ -216,7 +216,7 @@ impl error::Error for TgaError {
     fn cause(&self) -> Option<&error::Error> {
         match *self {
             TgaError::CorruptTgaHeader => None,
-            TgaError::Not24BitRgb => None,
+            TgaError::Not24BitRgb(_) => None,
             TgaError::CorruptIdString(ref err) => Some(err),
             TgaError::CorruptColourMap(ref err) => Some(err),
             TgaError::CorruptImageData(ref err) => Some(err),
@@ -278,13 +278,17 @@ impl TgaImage {
     pub fn parse_from_buffer(buf: &[u8]) -> Result<TgaImage, TgaError> {
         let header = TgaHeader::parse_from_buffer(buf).unwrap();
 
-        // Determine whether we support the image format.
-        if header.data_type_code != 2 {
-            return Err(TgaError::Not24BitRgb);
+        // Determine whether we support the image format. We presently
+        // support 24 bit unmapped RGB images only. They can either be 
+        // uncompressed (type code 2) or run length encoded (type code 10).
+        if  (header.data_type_code != 2) && (header.data_type_code != 10) {
+            return Err(TgaError::Not24BitRgb(header.data_type_code as usize));
         }
 
+        // Targa 24 images can alse be embedded in Targa 32 images, but we do
+        // not implement that (yet).
         if header.bits_per_pixel != 24 {
-            return Err(TgaError::Not24BitRgb);
+            return Err(TgaError::Not24BitRgb(header.data_type_code as usize));
         }
 
         if buf.len() < header.id_length as usize + TGA_HEADER_LENGTH {
@@ -388,14 +392,14 @@ impl TgaImage {
         // Determine whether we support the image format. We presently
         // support 24 bit unmapped RGB images only. They can either be 
         // uncompressed (type code 2) or run length encoded (type code 10).
-        if header.data_type_code != 2 {
-            return Err(TgaError::Not24BitRgb);
+        if (header.data_type_code != 2) && (header.data_type_code != 10) {
+            return Err(TgaError::Not24BitRgb(header.data_type_code as usize));
         }
 
         // Targa 24 images can alse be embedded in Targa 32 images, but we do
-        // not implement that.
+        // not implement that (yet).
         if header.bits_per_pixel != 24 {
-            return Err(TgaError::Not24BitRgb);
+            return Err(TgaError::Not24BitRgb(header.data_type_code as usize));
         }
 
         let mut bytes = f.bytes();

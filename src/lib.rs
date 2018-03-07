@@ -12,6 +12,7 @@ use std::fmt;
 use std::io::{Read, Seek, SeekFrom};
 use std::io;
 
+
 /// The length of a TGA Header is always 18 bytes.
 pub const TGA_HEADER_LENGTH: usize = 18;
 
@@ -229,10 +230,179 @@ impl error::Error for TgaError {
 }
 
 ///
-/// A `TgaImage` is a structure containing a TGA image.
+/// A `TgaImage` is a structure containing a TGA image. This data type 
+/// can represent either 24 bit uncompressed RGB images, or 24 bit
+/// run-length encoded RGB images.
 ///
 #[derive(PartialEq, Eq, Debug)]
-pub struct TgaImage {
+pub enum TgaImage {
+    UnmappedUncompressedRgb(RawTgaImage),
+    UnmappedRunLengthEncodedRgb(RawTgaImage),
+}
+
+impl TgaImage {
+    pub fn parse_from_buffer(buf: &[u8]) -> Result<TgaImage, TgaError> {
+        let header = TgaHeader::parse_from_buffer(buf).unwrap();
+
+        // Determine whether we support the image format. We presently
+        // support 24 bit unmapped RGB images only. They can either be 
+        // uncompressed (type code 2) or run length encoded (type code 10).
+        match header.data_type_code {
+            2 => RawTgaImage::parse_unmapped_rgb(buf, header).map(|image| { 
+                TgaImage::UnmappedUncompressedRgb(image)
+            }),
+            10 => RawTgaImage::parse_rle_rgb(buf, header).map(|image| {
+                TgaImage::UnmappedRunLengthEncodedRgb(image)
+            }),
+            _ => Err(TgaError::Not24BitRgb(header.data_type_code as usize))
+        }
+    }
+
+    pub fn parse_from_file<F: Read + Seek>(f: &mut F) -> Result<TgaImage, TgaError> {
+        let header = TgaHeader::parse_from_file(f).unwrap();
+
+        // Determine whether we support the image format. We presently
+        // support 24 bit unmapped RGB images only. They can either be 
+        // uncompressed (type code 2) or run length encoded (type code 10).
+        match header.data_type_code {
+            2 => RawTgaImage::parse_from_file(f, header).map(|image| { 
+                TgaImage::UnmappedUncompressedRgb(image)
+            }),
+            10 => RawTgaImage::parse_from_file(f, header).map(|image| {
+                TgaImage::UnmappedRunLengthEncodedRgb(image)
+            }),
+            _ => Err(TgaError::Not24BitRgb(header.data_type_code as usize))
+        }
+    }
+
+    ///
+    /// The function `width` returns the width of a TGA image, in pixels.
+    ///
+    pub fn width(&self) -> usize {
+        match self {
+            &TgaImage::UnmappedUncompressedRgb(ref image) |
+            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.width()
+        }
+    }
+
+    ///
+    /// Return the height of a TGA image, in pixels.
+    ///
+    pub fn height(&self) -> usize {
+        match self {
+            &TgaImage::UnmappedUncompressedRgb(ref image) |
+            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.height()
+        }
+    }
+
+    ///
+    /// Return the bit depth per pixel in a TGA Image.
+    ///
+    pub fn bits_per_pixel(&self) -> usize {
+        match self {
+            &TgaImage::UnmappedUncompressedRgb(ref image) |
+            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.bits_per_pixel()
+        }
+    }
+
+    ///
+    /// Compute the colour map type. The colour map type is either `0` or `1`.
+    /// A `0` indicates that there is no colour map; a `1` indicates that a 
+    /// colour map is included.
+    ///
+    pub fn color_map_type(&self) -> usize {
+        match self {
+            &TgaImage::UnmappedUncompressedRgb(ref image) |
+            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.color_map_type()
+        }
+    }
+
+    pub fn data_type_code(&self) -> usize {
+        match self {
+            &TgaImage::UnmappedUncompressedRgb(ref image) |
+            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.data_type_code()
+        }
+    }
+
+    ///
+    /// The function `header` produces a copy of the TGA header.
+    ///
+    pub fn header(&self) -> TgaHeader {
+        match self {
+            &TgaImage::UnmappedUncompressedRgb(ref image) |
+            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.header()
+        }
+    }
+
+    ///
+    /// The function `pixels` generates an iterator over the pixels of the image.
+    /// It sweeps through the TGA image going from left to right in each row, and 
+    /// going from bottom to top. The first pixel returned is the bottom left corner;
+    /// the last pixel returned is the top right corner. 
+    ///
+    pub fn pixels(&self) -> PixelIter {
+        match self {
+            &TgaImage::UnmappedUncompressedRgb(ref image) |
+            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.pixels()
+        }
+    }
+
+    ///
+    /// The function `image_data_length` returns the size of the image,
+    /// in the total number of pixels. This satisfies the following invariant.
+    /// ```
+    /// self.image_data_length() == self.width() * self.height()
+    /// ```
+    ///
+    pub fn image_data_length(&self) -> usize {
+        match self {
+            &TgaImage::UnmappedUncompressedRgb(ref image) |
+            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.image_data_length()
+        }
+    }
+
+    ///
+    /// The function `image_data_length_bytes` computes the size of the 
+    /// image data, in the number of bytes. For an unmapped RGB image, this will
+    /// simply be `3 * image_data_length()`, since each RGB pixel is 3 bytes long.
+    ///
+    pub fn image_data_length_bytes(&self) -> usize {
+        match self {
+            &TgaImage::UnmappedUncompressedRgb(ref image) |
+            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.image_data_length_bytes()
+        }
+    }
+
+    ///
+    /// The function `image_identification` returns a slice into the 
+    /// image identification field. This is a free-form field that immediately
+    /// follows the header.
+    ///
+    pub fn image_identification(&self) -> &[u8] {
+        match self {
+            &TgaImage::UnmappedUncompressedRgb(ref image) |
+            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.image_identification()
+        }
+    }
+
+    ///
+    /// The function `extended_image_identification` returns a slice to the 
+    /// extended image identification data. This is the data that follows after
+    /// the image data that is too large for the image identification field.
+    ///
+    pub fn extended_image_identification(&self) -> &[u8] {
+        match self {
+            &TgaImage::UnmappedUncompressedRgb(ref image) |
+            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.extended_image_identification()
+        }
+    }
+}
+
+///
+/// A `RawTgaImage` is a structure containing the actual TGA image data.
+///
+#[derive(PartialEq, Eq, Debug)]
+pub struct RawTgaImage {
     /// The TGA header.
     header: TgaHeader,
     /// The image identification data. This is typically omitted, but it can
@@ -249,7 +419,7 @@ pub struct TgaImage {
     extended_image_identification: Box<Vec<u8>>,
 }
 
-impl TgaImage {
+impl RawTgaImage {
     ///
     /// Construct a new TGA image.
     ///
@@ -259,8 +429,8 @@ impl TgaImage {
         colour_map_data: Box<Vec<u8>>, 
         image_data: Box<Vec<u8>>,
         extended_image_identification: Box<Vec<u8>>
-    ) -> TgaImage {
-        TgaImage {
+    ) -> RawTgaImage {
+        RawTgaImage {
             header: header, 
             image_identification: image_identification, 
             colour_map_data: colour_map_data, 
@@ -275,17 +445,18 @@ impl TgaImage {
     /// the bytes of the buffer must conform to the TGA image format. The 
     /// first 18 bytes of the image should be the TGA header.
     ///
-    pub fn parse_from_buffer(buf: &[u8]) -> Result<TgaImage, TgaError> {
-        let header = TgaHeader::parse_from_buffer(buf).unwrap();
+    pub fn parse_unmapped_rgb(buf: &[u8], header: TgaHeader) -> Result<RawTgaImage, TgaError> {
+        //let header = TgaHeader::parse_from_buffer(buf).unwrap();
 
+        /*
         // Determine whether we support the image format. We presently
         // support 24 bit unmapped RGB images only. They can either be 
         // uncompressed (type code 2) or run length encoded (type code 10).
-        if  (header.data_type_code != 2) && (header.data_type_code != 10) {
+        if (header.data_type_code != 2) && (header.data_type_code != 10) {
             return Err(TgaError::Not24BitRgb(header.data_type_code as usize));
         }
-
-        // Targa 24 images can alse be embedded in Targa 32 images, but we do
+        */
+        // Targa 24 images can also be embedded in Targa 32 images, but we do
         // not implement that (yet).
         if header.bits_per_pixel != 24 {
             return Err(TgaError::Not24BitRgb(header.data_type_code as usize));
@@ -376,8 +547,8 @@ impl TgaImage {
     /// the bytes of the file or stream must conform to the TGA image format. The 
     /// first 18 bytes of the image should be the TGA header.
     ///
-    pub fn parse_from_file<F: Read + Seek>(f: &mut F) -> Result<TgaImage, TgaError> {
-        let header = TgaHeader::parse_from_file(f).unwrap();
+    pub fn parse_from_file<F: Read + Seek>(f: &mut F, header: TgaHeader) -> Result<RawTgaImage, TgaError> {
+        //let header = TgaHeader::parse_from_file(f).unwrap();
         let offset = match f.seek(SeekFrom::Start(TGA_HEADER_LENGTH as u64)) {
             Ok(val) => val as usize,
             Err(_) => return Err(TgaError::CorruptTgaHeader)
@@ -396,7 +567,7 @@ impl TgaImage {
             return Err(TgaError::Not24BitRgb(header.data_type_code as usize));
         }
 
-        // Targa 24 images can alse be embedded in Targa 32 images, but we do
+        // Targa 24 images can also be embedded in Targa 32 images, but we do
         // not implement that (yet).
         if header.bits_per_pixel != 24 {
             return Err(TgaError::Not24BitRgb(header.data_type_code as usize));
@@ -474,6 +645,10 @@ impl TgaImage {
         );
 
         Ok(image)        
+    }
+
+    fn parse_rle_rgb(buf: &[u8], header: TgaHeader) -> Result<RawTgaImage, TgaError> {
+        unimplemented!()
     }
 
     ///

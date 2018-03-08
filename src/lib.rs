@@ -456,49 +456,12 @@ impl ImageIdentification {
     }
 }
 
+#[derive(Clone, PartialEq, Eq, Debug)]
+struct ColourMapData(Vec<u8>);
 
-///
-/// A `RawTgaImage` is a structure containing the underlying raw TGA image data.
-///
-#[derive(PartialEq, Eq, Debug)]
-struct RawTgaImage {
-    /// The TGA header.
-    header: TgaHeader,
-    /// The image identification data. This is typically omitted, but it can
-    /// up to 255 character long. If more data is needed, it can be placed
-    /// after the image data.
-    image_identification: Box<ImageIdentification>,
-    /// The colour map data, as specified by the colour map specification.
-    colour_map_data: Box<Vec<u8>>,
-    /// The raw pixels themselves.
-    image_data: Box<Vec<u8>>,
-    /// The extended image identification data. This field is the spillover from
-    /// the image identification field if the image identification data is too
-    /// long to fit into the image indentification field.
-    extended_image_identification: Box<ImageIdentification>,
-}
-
-impl RawTgaImage {
-    ///
-    /// Construct a new TGA image.
-    ///
-    fn new(
-        header: TgaHeader, 
-        image_identification: Box<ImageIdentification>, 
-        colour_map_data: Box<Vec<u8>>, 
-        image_data: Box<Vec<u8>>,
-        extended_image_identification: Box<ImageIdentification>
-    ) -> RawTgaImage {
-        RawTgaImage {
-            header: header, 
-            image_identification: image_identification, 
-            colour_map_data: colour_map_data, 
-            image_data: image_data,
-            extended_image_identification: extended_image_identification,
-        }
-    }
-
-    fn parse_colour_map_data<F: Read>(f: &mut F, header: TgaHeader) -> Result<Vec<u8>, TgaError> {
+impl ColourMapData {
+    #[inline]
+    fn parse_from_file<F: Read>(f: &mut F, header: TgaHeader) -> Result<ColourMapData, TgaError> {
         let mut bytes = f.bytes();
         let colour_map_size = header.colour_map_size();
         let mut colour_map_data = Vec::new();
@@ -519,7 +482,74 @@ impl RawTgaImage {
             }
         }
 
-        Ok(colour_map_data)
+        Ok(ColourMapData(colour_map_data))
+    }
+
+    #[inline]
+    fn parse_from_buffer(buf: &[u8], header: TgaHeader) -> Result<ColourMapData, TgaError> {
+        let colour_map_size = header.colour_map_size();
+        let mut bytes = buf.bytes();
+        let mut colour_map_data = Vec::new();
+        for i in 0..colour_map_size {
+            let byte = bytes.next();
+            match byte {
+                Some(Ok(val)) => colour_map_data.push(val),
+                Some(Err(err)) => {
+                    return Err(
+                        TgaError::CorruptColourMap(Box::new(err))
+                    );
+                }
+                None => {
+                    return Err(
+                        TgaError::IncompleteColourMap(i as usize, colour_map_size)
+                    );
+                }
+            }
+        }
+
+        Ok(ColourMapData(colour_map_data))
+    }
+}
+
+///
+/// A `RawTgaImage` is a structure containing the underlying raw TGA image data.
+///
+#[derive(PartialEq, Eq, Debug)]
+struct RawTgaImage {
+    /// The TGA header.
+    header: TgaHeader,
+    /// The image identification data. This is typically omitted, but it can
+    /// up to 255 character long. If more data is needed, it can be placed
+    /// after the image data.
+    image_identification: Box<ImageIdentification>,
+    /// The colour map data, as specified by the colour map specification.
+    colour_map_data: Box<ColourMapData>,
+    /// The raw pixels themselves.
+    image_data: Box<Vec<u8>>,
+    /// The extended image identification data. This field is the spillover from
+    /// the image identification field if the image identification data is too
+    /// long to fit into the image indentification field.
+    extended_image_identification: Box<ImageIdentification>,
+}
+
+impl RawTgaImage {
+    ///
+    /// Construct a new TGA image.
+    ///
+    fn new(
+        header: TgaHeader, 
+        image_identification: Box<ImageIdentification>, 
+        colour_map_data: Box<ColourMapData>, 
+        image_data: Box<Vec<u8>>,
+        extended_image_identification: Box<ImageIdentification>
+    ) -> RawTgaImage {
+        RawTgaImage {
+            header: header, 
+            image_identification: image_identification, 
+            colour_map_data: colour_map_data,
+            image_data: image_data,
+            extended_image_identification: extended_image_identification,
+        }
     }
 
     ///
@@ -687,24 +717,9 @@ impl UncompressedRgb {
 
         let mut bytes = slice.bytes();
         // Parse the colour map.
-        let colour_map_size = header.colour_map_size();
-        let mut colour_map_data = Box::new(Vec::new());
-        for i in 0..colour_map_size {
-            let byte = bytes.next();
-            match byte {
-                Some(Ok(val)) => colour_map_data.push(val),
-                Some(Err(err)) => {
-                    return Err(
-                        TgaError::CorruptColourMap(Box::new(err))
-                    );
-                }
-                None => {
-                    return Err(
-                        TgaError::IncompleteColourMap(i as usize, colour_map_size)
-                    );
-                }
-            }
-        }
+        let colour_map_data = Box::new(
+            try!(ColourMapData::parse_from_buffer(slice, header))
+        );
 
         // Parse the image data.
         let width = header.width();
@@ -772,7 +787,7 @@ impl UncompressedRgb {
 
         // Parse the colour map.
         let colour_map_data = Box::new(
-            try!(RawTgaImage::parse_colour_map_data(f, header))
+            try!(ColourMapData::parse_from_file(f, header))
         );
 
         // Parse the image data.
@@ -947,7 +962,7 @@ impl RunLengthEncodedRgb {
 
         // Parse the colour map.
         let colour_map_data = Box::new(
-            try!(RawTgaImage::parse_colour_map_data(f, header))
+            try!(ColourMapData::parse_from_file(f, header))
         );
 
         // Parse the image data.

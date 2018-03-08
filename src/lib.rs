@@ -430,6 +430,30 @@ impl ImageIdentification {
 
         Ok(ImageIdentification(image_identification))
     }
+
+    #[inline]
+    fn parse_from_buffer(buf: &[u8], header: TgaHeader) -> Result<Self, TgaError> {
+        let mut bytes = buf.bytes();
+        let mut image_identification = Vec::new();
+        for i in 0..header.id_length {
+            let byte = bytes.next();
+            match byte {
+                Some(Ok(val)) => image_identification.push(val),
+                Some(Err(err)) => {
+                    return Err(
+                        TgaError::CorruptIdString(Box::new(err))
+                    );
+                }
+                None => {
+                    return Err(
+                        TgaError::IncompleteIdString(i as usize, header.id_length as usize)
+                    );
+                }
+            }
+        }
+
+        Ok(ImageIdentification(image_identification))
+    }
 }
 
 
@@ -657,26 +681,11 @@ impl UncompressedRgb {
         let slice = &buf[TGA_HEADER_LENGTH..buf.len()];
 
         // Parse the image identification.
-        //let image_identification = ImageIdentification::parse_from_buffer(buf, header);
-        let mut bytes = slice.bytes();
-        let mut image_identification = Box::new(Vec::new());
-        for i in 0..header.id_length {
-            let byte = bytes.next();
-            match byte {
-                Some(Ok(val)) => image_identification.push(val),
-                Some(Err(err)) => {
-                    return Err(
-                        TgaError::CorruptIdString(Box::new(err))
-                    );
-                }
-                None => {
-                    return Err(
-                        TgaError::IncompleteIdString(i as usize, header.id_length as usize)
-                    );
-                }
-            }
-        }
+        let image_identification = Box::new(
+            try!(ImageIdentification::parse_from_buffer(slice, header))
+        );
 
+        let mut bytes = slice.bytes();
         // Parse the colour map.
         let colour_map_size = header.colour_map_size();
         let mut colour_map_data = Box::new(Vec::new());
@@ -727,7 +736,6 @@ impl UncompressedRgb {
             bytes.map(|byte| byte.unwrap()).collect::<Vec<u8>>()
         ));
 
-        let image_identification = Box::new(ImageIdentification(*image_identification));
         let inner = RawTgaImage::new(
             header, image_identification, colour_map_data, image_data, extended_image_identification
         );

@@ -621,6 +621,12 @@ impl UncompressedRgb {
 
         // Parse the colour map data.
         let slice = &slice[header.id_length()..slice.len()];
+        if slice.len() < header.colour_map_size() {
+            return Err(TgaError::IncompleteColourMap(
+                slice.len(), header.colour_map_size()
+            ));
+        }
+
         let colour_map_data = Box::new(
             slice[0..header.colour_map_size()].iter().map(|&x| x).collect::<Vec<u8>>()
         );
@@ -628,6 +634,10 @@ impl UncompressedRgb {
         // Parse the image data.
         let slice = &slice[header.colour_map_size()..slice.len()];
         let image_size = header.width() * header.height() * header.bytes_per_pixel();
+        if slice.len() < image_size {
+            return Err(TgaError::IncompleteImageData(slice.len(), image_size));
+        }
+
         let image_data = Box::new(
             slice[0..image_size].iter().map(|&x| x).collect::<Vec<u8>>()
         );

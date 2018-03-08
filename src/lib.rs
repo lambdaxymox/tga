@@ -9,16 +9,16 @@
 //!
 use std::error;
 use std::fmt;
-use std::io::{Read, Seek, SeekFrom};
+use std::io::Read;
 use std::io;
 
 
 /// The length of a TGA Header is always 18 bytes.
 pub const TGA_HEADER_LENGTH: usize = 18;
 
-/// Parse a TGA image from an input stream.
-pub fn parse<S: Read + Seek>(stream: &mut S) -> Result<TgaImage, TgaError> {
-    TgaImage::parse_from_file(stream)
+/// Parse a TGA image from an input file or stream.
+pub fn parse<F: Read>(f: &mut F) -> Result<TgaImage, TgaError> {
+    TgaImage::parse_from_file(f)
 }
 
 ///
@@ -64,7 +64,8 @@ impl TgaHeader {
     /// Parse a TGA header from a buffer. We assume that the header to be parsed
     /// starts at the beginning of the buffer.
     ///
-    fn parse_from_buffer(buf: &[u8]) -> Option<TgaHeader> {
+    #[inline]
+    fn parse_from_buffer(buf: &[u8]) -> Result<TgaHeader, TgaError> {
         // The buffer must be at least the length (in bytes) of a TGA header.
         if buf.len() >= TGA_HEADER_LENGTH {
             let header = TgaHeader {
@@ -82,10 +83,10 @@ impl TgaHeader {
                 image_descriptor: buf[17],
             };
 
-            return Some(header);
+            return Ok(header);
         }
 
-        None
+        Err(TgaError::IncompleteTgaHeader(buf.len(), TGA_HEADER_LENGTH))
     }
 
     ///
@@ -93,9 +94,18 @@ impl TgaHeader {
     /// to be parsed starts at the beginning of the buffer. If this is not the case, the
     /// parser will most likely reject the input since it cannot identify a correct header.
     ///
-    fn parse_from_file<F: Read>(f: &mut F) -> Option<TgaHeader> {
+    fn parse_from_file<F: Read>(f: &mut F) -> Result<TgaHeader, TgaError> {
         let mut buf = [0; TGA_HEADER_LENGTH];
-        f.read(&mut buf).unwrap();
+        let offset = match f.read(&mut buf) {
+            Ok(val) => val as usize,
+            Err(_) => return Err(TgaError::CorruptTgaHeader)
+        };
+
+        if offset != TGA_HEADER_LENGTH {
+            return Err(
+                TgaError::IncompleteTgaHeader(offset, TGA_HEADER_LENGTH)
+            );
+        }
         Self::parse_from_buffer(&buf)
     }
 
@@ -242,7 +252,7 @@ pub enum TgaImage {
 
 impl TgaImage {
     pub fn parse_from_buffer(buf: &[u8]) -> Result<TgaImage, TgaError> {
-        let header = TgaHeader::parse_from_buffer(buf).unwrap();
+        let header = try!(TgaHeader::parse_from_buffer(buf));
 
         // Determine whether we support the image format. We presently
         // support 24 bit unmapped RGB images only. They can either be 
@@ -258,8 +268,8 @@ impl TgaImage {
         }
     }
 
-    pub fn parse_from_file<F: Read + Seek>(f: &mut F) -> Result<TgaImage, TgaError> {
-        let header = TgaHeader::parse_from_file(f).unwrap();
+    pub fn parse_from_file<F: Read>(f: &mut F) -> Result<TgaImage, TgaError> {
+        let header = try!(TgaHeader::parse_from_file(f));
 
         // Determine whether we support the image format. We presently
         // support 24 bit unmapped RGB images only. They can either be 
@@ -446,16 +456,6 @@ impl RawTgaImage {
     /// first 18 bytes of the image should be the TGA header.
     ///
     pub fn parse_unmapped_rgb(buf: &[u8], header: TgaHeader) -> Result<RawTgaImage, TgaError> {
-        //let header = TgaHeader::parse_from_buffer(buf).unwrap();
-
-        /*
-        // Determine whether we support the image format. We presently
-        // support 24 bit unmapped RGB images only. They can either be 
-        // uncompressed (type code 2) or run length encoded (type code 10).
-        if (header.data_type_code != 2) && (header.data_type_code != 10) {
-            return Err(TgaError::Not24BitRgb(header.data_type_code as usize));
-        }
-        */
         // Targa 24 images can also be embedded in Targa 32 images, but we do
         // not implement that (yet).
         if header.bits_per_pixel != 24 {
@@ -547,19 +547,7 @@ impl RawTgaImage {
     /// the bytes of the file or stream must conform to the TGA image format. The 
     /// first 18 bytes of the image should be the TGA header.
     ///
-    pub fn parse_from_file<F: Read + Seek>(f: &mut F, header: TgaHeader) -> Result<RawTgaImage, TgaError> {
-        //let header = TgaHeader::parse_from_file(f).unwrap();
-        let offset = match f.seek(SeekFrom::Start(TGA_HEADER_LENGTH as u64)) {
-            Ok(val) => val as usize,
-            Err(_) => return Err(TgaError::CorruptTgaHeader)
-        };
-
-        if offset != TGA_HEADER_LENGTH {
-            return Err(
-                TgaError::IncompleteTgaHeader(offset, TGA_HEADER_LENGTH)
-            );
-        }
-
+    pub fn parse_from_file<F: Read>(f: &mut F, header: TgaHeader) -> Result<RawTgaImage, TgaError> {
         // Determine whether we support the image format. We presently
         // support 24 bit unmapped RGB images only. They can either be 
         // uncompressed (type code 2) or run length encoded (type code 10).

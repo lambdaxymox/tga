@@ -104,6 +104,7 @@ impl TgaHeader {
         Self::parse_from_buffer(&buf)
     }
 
+    #[inline]
     fn colour_map_size(&self) -> usize {
         let colour_map_length = ((self.colour_map_length[1] as u16) << 8) 
                               | self.colour_map_length[0] as u16;
@@ -119,6 +120,7 @@ impl TgaHeader {
     ///
     /// The width of a TGA image, in pixels.
     ///
+    #[inline]
     fn width(&self) -> usize {
         (((self.width[1] as u16) << 8) | (self.width[0] as u16)) as usize
     }
@@ -126,6 +128,7 @@ impl TgaHeader {
     ///
     /// The height of a TGA image, in pixels.
     ///
+    #[inline]
     fn height(&self) -> usize {
         ((((self.height[1] as u16) << 8) as u16) | (self.height[0] as u16)) as usize
     }
@@ -134,8 +137,24 @@ impl TgaHeader {
     /// The bit depth for each pixel. By default this will be 24 bits as the most
     /// common TGA image type is a 24 bit unmapped uncompressed RGB image.
     ///
+    #[inline]
     fn bits_per_pixel(&self) -> usize {
         self.bits_per_pixel as usize
+    }
+
+    #[inline]
+    fn bytes_per_pixel(&self) -> usize {
+        (self.bits_per_pixel / 8) as usize
+    }
+
+    #[inline]
+    fn colour_map_length(&self) -> usize {
+        (((self.colour_map_length[1] as u16) << 8) | (self.colour_map_length[0] as u16)) as usize
+    }
+
+    #[inline]
+    fn colour_map_depth(&self) -> usize {
+        self.colour_map_depth as usize
     }
 }
 
@@ -392,65 +411,6 @@ impl TgaImage {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
-struct ImageIdentification(Vec<u8>);
-
-impl ImageIdentification {
-    #[inline]
-    fn parse_from_buffer(buf: &[u8], header: TgaHeader) -> Result<Self, TgaError> {
-        let mut bytes = buf.bytes();
-        let mut image_identification = Vec::new();
-        for i in 0..header.id_length {
-            let byte = bytes.next();
-            match byte {
-                Some(Ok(val)) => image_identification.push(val),
-                Some(Err(err)) => {
-                    return Err(
-                        TgaError::CorruptIdString(Box::new(err))
-                    );
-                }
-                None => {
-                    return Err(
-                        TgaError::IncompleteIdString(i as usize, header.id_length as usize)
-                    );
-                }
-            }
-        }
-
-        Ok(ImageIdentification(image_identification))
-    }
-}
-
-#[derive(Clone, PartialEq, Eq, Debug)]
-struct ColourMapData(Vec<u8>);
-
-impl ColourMapData {
-    #[inline]
-    fn parse_from_buffer(buf: &[u8], header: TgaHeader) -> Result<ColourMapData, TgaError> {
-        let colour_map_size = header.colour_map_size();
-        let mut bytes = buf.bytes();
-        let mut colour_map_data = Vec::new();
-        for i in 0..colour_map_size {
-            let byte = bytes.next();
-            match byte {
-                Some(Ok(val)) => colour_map_data.push(val),
-                Some(Err(err)) => {
-                    return Err(
-                        TgaError::CorruptColourMap(Box::new(err))
-                    );
-                }
-                None => {
-                    return Err(
-                        TgaError::IncompleteColourMap(i as usize, colour_map_size)
-                    );
-                }
-            }
-        }
-
-        Ok(ColourMapData(colour_map_data))
-    }
-}
-
 ///
 /// A `RawTgaImage` is a structure containing the underlying raw TGA image data.
 ///
@@ -461,15 +421,15 @@ struct RawTgaImage {
     /// The image identification data. This is typically omitted, but it can
     /// up to 255 character long. If more data is needed, it can be placed
     /// after the image data.
-    image_identification: Box<ImageIdentification>,
+    image_identification: Box<Vec<u8>>,
     /// The colour map data, as specified by the colour map specification.
-    colour_map_data: Box<ColourMapData>,
+    colour_map_data: Box<Vec<u8>>,
     /// The raw pixels themselves.
     image_data: Box<Vec<u8>>,
     /// The extended image identification data. This field is the spillover from
     /// the image identification field if the image identification data is too
     /// long to fit into the image indentification field.
-    extended_image_identification: Box<ImageIdentification>,
+    extended_image_identification: Box<Vec<u8>>,
 }
 
 impl RawTgaImage {
@@ -478,10 +438,10 @@ impl RawTgaImage {
     ///
     fn new(
         header: TgaHeader, 
-        image_identification: Box<ImageIdentification>, 
-        colour_map_data: Box<ColourMapData>, 
+        image_identification: Box<Vec<u8>>, 
+        colour_map_data: Box<Vec<u8>>, 
         image_data: Box<Vec<u8>>,
-        extended_image_identification: Box<ImageIdentification>
+        extended_image_identification: Box<Vec<u8>>
     ) -> RawTgaImage {
         RawTgaImage {
             header: header, 
@@ -583,7 +543,7 @@ impl RawTgaImage {
     ///
     #[inline]
     fn image_identification(&self) -> &[u8] {
-        &self.image_identification.0
+        &self.image_identification
     }
 
     ///
@@ -593,7 +553,7 @@ impl RawTgaImage {
     ///
     #[inline]
     fn extended_image_identification(&self) -> &[u8] {
-        &self.extended_image_identification.0
+        &self.extended_image_identification
     }
 }
 
@@ -648,56 +608,37 @@ impl UncompressedRgb {
             return Err(TgaError::CorruptTgaHeader);
         }
 
-        let slice = &buf[TGA_HEADER_LENGTH..buf.len()];
-
         // Parse the image identification.
+        let slice = &buf[TGA_HEADER_LENGTH..buf.len()];
         let image_identification = Box::new(
-            try!(ImageIdentification::parse_from_buffer(slice, header))
+            slice[0..header.id_length as usize].iter().map(|&x| x).collect::<Vec<u8>>()
         );
 
-        // Parse the colour map.
+        let slice = &slice[header.id_length as usize..slice.len()];
+        let colour_map_size = header.colour_map_size() * header.colour_map_depth();
         let colour_map_data = Box::new(
-            try!(ColourMapData::parse_from_buffer(slice, header))
+            slice[0..colour_map_size as usize].iter().map(|&x| x).collect::<Vec<u8>>()
         );
 
         // Parse the image data.
-        let width = header.width();
-        let height = header.height();
-        let bytes_per_pixel = (header.bits_per_pixel / 8) as usize;
-        let image_size = width * height * bytes_per_pixel;
-        let mut bytes = slice.bytes();
-        
-        let mut image_data = Box::new(Vec::new());
-        for i in 0..image_size {
-            let byte = bytes.next();
-            match byte {
-                Some(Ok(val)) => image_data.push(val),
-                Some(Err(err)) => {
-                    return Err(
-                        TgaError::CorruptImageData(Box::new(err))
-                    );
-                }
-                None => {
-                    return Err(
-                        TgaError::IncompleteImageData(i, image_size)
-                    );
-                }
-            }
-        }
+        let slice = &slice[colour_map_size..slice.len()];
+        let image_size = header.width() * header.height() * header.bytes_per_pixel();
+        let image_data = Box::new(
+            slice[0..image_size].iter().map(|&x| x).collect::<Vec<u8>>()
+        );
 
         // Parse the extended image identification information from the end
         // of the image data field.
-        let extended_image_identification = Box::new(ImageIdentification(
-            bytes.map(|byte| byte.unwrap()).collect::<Vec<u8>>()
-        ));
+        let slice = &slice[image_size..slice.len()];
+        let extended_image_identification = Box::new(
+            slice.iter().map(|&x| x).collect::<Vec<u8>>()
+        );
 
         let inner = RawTgaImage::new(
             header, image_identification, colour_map_data, image_data, extended_image_identification
         );
 
-        let image = UncompressedRgb { inner: inner };
-
-        Ok(image)
+        Ok(UncompressedRgb { inner: inner })
     }
 
     ///
@@ -808,6 +749,7 @@ pub struct RunLengthEncodedRgb {
 
 impl RunLengthEncodedRgb {
     pub fn parse_from_buffer(buf: &[u8], header: TgaHeader) -> Result<RunLengthEncodedRgb, TgaError> {
+        /*
         // Determine whether we support the image format. We presently
         // support 24 bit unmapped RGB images only. They can either be 
         // uncompressed (type code 2) or run length encoded (type code 10).
@@ -882,6 +824,7 @@ impl RunLengthEncodedRgb {
                 }
             }
         }
+        */
         */
         unimplemented!()
     }

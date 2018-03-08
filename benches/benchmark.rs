@@ -12,7 +12,7 @@ use std::io::Read;
 
 
 fn config() -> Criterion {
-    Criterion::default().sample_size(20)
+    Criterion::default().sample_size(100)
 }
 
 fn benchmark(c: &mut Criterion) {

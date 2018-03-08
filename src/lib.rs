@@ -449,7 +449,7 @@ struct RawTgaImage {
     /// The extended image identification data. This field is the spillover from
     /// the image identification field if the image identification data is too
     /// long to fit into the image indentification field.
-    extended_image_identification: Box<Vec<u8>>,
+    extended_image_identification: Box<ImageIdentification>,
 }
 
 impl RawTgaImage {
@@ -461,7 +461,7 @@ impl RawTgaImage {
         image_identification: Box<ImageIdentification>, 
         colour_map_data: Box<Vec<u8>>, 
         image_data: Box<Vec<u8>>,
-        extended_image_identification: Box<Vec<u8>>
+        extended_image_identification: Box<ImageIdentification>
     ) -> RawTgaImage {
         RawTgaImage {
             header: header, 
@@ -597,7 +597,7 @@ impl RawTgaImage {
     ///
     #[inline]
     fn extended_image_identification(&self) -> &[u8] {
-        &self.extended_image_identification
+        &self.extended_image_identification.0
     }
 }
 
@@ -721,9 +721,9 @@ impl UncompressedRgb {
 
         // Parse the extended image identification information from the end
         // of the image data field.
-        let extended_image_identification = Box::new(
+        let extended_image_identification = Box::new(ImageIdentification(
             bytes.map(|byte| byte.unwrap()).collect::<Vec<u8>>()
-        );
+        ));
 
         let image_identification = Box::new(ImageIdentification(*image_identification));
         let inner = RawTgaImage::new(
@@ -792,9 +792,9 @@ impl UncompressedRgb {
 
         // Parse the extended image identification information from the end
         // of the image data field.
-        let extended_image_identification = Box::new(
+        let extended_image_identification = Box::new(ImageIdentification(
             bytes.map(|byte| byte.unwrap()).collect::<Vec<u8>>()
-        );
+        ));
 
         let inner = RawTgaImage::new(
             header, image_identification, colour_map_data, image_data, extended_image_identification

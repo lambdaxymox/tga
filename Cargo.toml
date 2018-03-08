@@ -10,3 +10,10 @@ keywords = ["tga"]
 name = "tga"
 
 [dependencies]
+
+[dev-dependencies]
+criterion = "0.2"
+
+[[bench]]
+name = "benchmark"
+harness = false

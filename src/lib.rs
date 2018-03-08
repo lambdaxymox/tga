@@ -104,19 +104,6 @@ impl TgaHeader {
         Self::parse_from_buffer(&buf)
     }
 
-    #[inline]
-    fn colour_map_size(&self) -> usize {
-        let colour_map_length = ((self.colour_map_length[1] as u16) << 8) 
-                              | self.colour_map_length[0] as u16;
-
-        // From the TGA specification, the color map depth will be one of
-        // 16, 24, or 32 bits; it is always a multiple of 8. Therefore
-        // we can always safely divide by 8.
-        let colour_map_depth_bytes = (self.colour_map_depth / 8) as u16;
-
-        (colour_map_length * colour_map_depth_bytes) as usize
-    }
-
     ///
     /// The width of a TGA image, in pixels.
     ///
@@ -155,6 +142,24 @@ impl TgaHeader {
     #[inline]
     fn colour_map_depth(&self) -> usize {
         self.colour_map_depth as usize
+    }
+
+    #[inline]
+    fn colour_map_size(&self) -> usize {
+        let colour_map_length = ((self.colour_map_length[1] as u16) << 8) 
+                              | self.colour_map_length[0] as u16;
+
+        // From the TGA specification, the color map depth will be one of
+        // 16, 24, or 32 bits; it is always a multiple of 8. Therefore
+        // we can always safely divide by 8.
+        let colour_map_depth_bytes = (self.colour_map_depth / 8) as u16;
+
+        (colour_map_length * colour_map_depth_bytes) as usize
+    }
+
+    #[inline]
+    fn id_length(&self) -> usize {
+        self.id_length as usize
     }
 }
 
@@ -604,24 +609,24 @@ impl UncompressedRgb {
             return Err(TgaError::Not24BitRgb(header.data_type_code as usize));
         }
 
-        if buf.len() < header.id_length as usize + TGA_HEADER_LENGTH {
+        if buf.len() < header.id_length() + TGA_HEADER_LENGTH {
             return Err(TgaError::CorruptTgaHeader);
         }
 
         // Parse the image identification.
         let slice = &buf[TGA_HEADER_LENGTH..buf.len()];
         let image_identification = Box::new(
-            slice[0..header.id_length as usize].iter().map(|&x| x).collect::<Vec<u8>>()
+            slice[0..header.id_length()].iter().map(|&x| x).collect::<Vec<u8>>()
         );
 
-        let slice = &slice[header.id_length as usize..slice.len()];
-        let colour_map_size = header.colour_map_size() * header.colour_map_depth();
+        // Parse the colour map data.
+        let slice = &slice[header.id_length()..slice.len()];
         let colour_map_data = Box::new(
-            slice[0..colour_map_size as usize].iter().map(|&x| x).collect::<Vec<u8>>()
+            slice[0..header.colour_map_size()].iter().map(|&x| x).collect::<Vec<u8>>()
         );
 
         // Parse the image data.
-        let slice = &slice[colour_map_size..slice.len()];
+        let slice = &slice[header.colour_map_size()..slice.len()];
         let image_size = header.width() * header.height() * header.bytes_per_pixel();
         let image_data = Box::new(
             slice[0..image_size].iter().map(|&x| x).collect::<Vec<u8>>()

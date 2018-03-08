@@ -435,7 +435,7 @@ impl ImageIdentification {
 /// A `RawTgaImage` is a structure containing the underlying raw TGA image data.
 ///
 #[derive(PartialEq, Eq, Debug)]
-pub struct RawTgaImage {
+struct RawTgaImage {
     /// The TGA header.
     header: TgaHeader,
     /// The image identification data. This is typically omitted, but it can
@@ -500,7 +500,7 @@ impl RawTgaImage {
     /// The function `width` returns the width of a TGA image, in pixels.
     ///
     #[inline]
-    pub fn width(&self) -> usize {
+    fn width(&self) -> usize {
         self.header.width()
     }
 
@@ -508,7 +508,7 @@ impl RawTgaImage {
     /// Return the height of a TGA image, in pixels.
     ///
     #[inline]
-    pub fn height(&self) -> usize {
+    fn height(&self) -> usize {
         self.header.height()
     }
 
@@ -516,7 +516,7 @@ impl RawTgaImage {
     /// Return the bit depth per pixel in a TGA Image.
     ///
     #[inline]
-    pub fn bits_per_pixel(&self) -> usize {
+    fn bits_per_pixel(&self) -> usize {
         self.header.bits_per_pixel()
     }
 
@@ -526,12 +526,12 @@ impl RawTgaImage {
     /// colour map is included.
     ///
     #[inline]
-    pub fn color_map_type(&self) -> usize {
+    fn color_map_type(&self) -> usize {
         self.header.color_map_type as usize
     }
 
     #[inline]
-    pub fn data_type_code(&self) -> usize {
+    fn data_type_code(&self) -> usize {
         self.header.data_type_code as usize
     }
 
@@ -539,7 +539,7 @@ impl RawTgaImage {
     /// The function `header` produces a copy of the TGA header.
     ///
     #[inline]
-    pub fn header(&self) -> TgaHeader {
+    fn header(&self) -> TgaHeader {
         self.header
     }
 
@@ -550,7 +550,7 @@ impl RawTgaImage {
     /// the last pixel returned is the top right corner. 
     ///
     #[inline]
-    pub fn pixels(&self) -> PixelIter {
+    fn pixels(&self) -> PixelIter {
         PixelIter {
             inner: self.image_data.as_slice(),
             current: [0; 3],
@@ -566,7 +566,7 @@ impl RawTgaImage {
     /// ```
     ///
     #[inline]
-    pub fn image_data_length(&self) -> usize {
+    fn image_data_length(&self) -> usize {
         self.image_data.len() / 3
     }
 
@@ -576,7 +576,7 @@ impl RawTgaImage {
     /// simply be `3 * image_data_length()`, since each RGB pixel is 3 bytes long.
     ///
     #[inline]
-    pub fn image_data_length_bytes(&self) -> usize {
+    fn image_data_length_bytes(&self) -> usize {
         self.image_data.len()
     }
 
@@ -586,7 +586,7 @@ impl RawTgaImage {
     /// follows the header.
     ///
     #[inline]
-    pub fn image_identification(&self) -> &[u8] {
+    fn image_identification(&self) -> &[u8] {
         &self.image_identification.0
     }
 
@@ -596,7 +596,7 @@ impl RawTgaImage {
     /// the image data that is too large for the image identification field.
     ///
     #[inline]
-    pub fn extended_image_identification(&self) -> &[u8] {
+    fn extended_image_identification(&self) -> &[u8] {
         &self.extended_image_identification
     }
 }

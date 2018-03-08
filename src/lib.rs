@@ -407,6 +407,7 @@ impl TgaImage {
 struct ImageIdentification(Vec<u8>);
 
 impl ImageIdentification {
+    #[inline]
     fn parse_from_file<F: Read>(f: &mut F, header: TgaHeader) -> Result<Self, TgaError> {
         let mut bytes = f.bytes();
         let mut image_identification = Vec::new();
@@ -426,6 +427,7 @@ impl ImageIdentification {
                 }
             }
         }
+
         Ok(ImageIdentification(image_identification))
     }
 }

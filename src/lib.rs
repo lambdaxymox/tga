@@ -764,7 +764,6 @@ pub struct RunLengthEncodedRgb {
 
 impl RunLengthEncodedRgb {
     pub fn parse_from_buffer(buf: &[u8], header: TgaHeader) -> Result<RunLengthEncodedRgb, TgaError> {
-        /*
         // Determine whether we support the image format. We presently
         // support 24 bit unmapped RGB images only. They can either be 
         // uncompressed (type code 2) or run length encoded (type code 10).
@@ -778,70 +777,73 @@ impl RunLengthEncodedRgb {
             return Err(TgaError::Not24BitRgb(header.data_type_code as usize));
         }
 
+        if buf.len() < header.id_length() + TGA_HEADER_LENGTH {
+            return Err(TgaError::CorruptTgaHeader);
+        }
+
         // Parse the image identification.
+        let slice = &buf[TGA_HEADER_LENGTH..buf.len()];
         let image_identification = Box::new(
-            try!(ImageIdentification::parse_from_buffer(buf, header))
+            slice[0..header.id_length()].iter().map(|&x| x).collect::<Vec<u8>>()
         );
 
-        // Parse the colour map.
+        // Parse the colour map data.
+        let slice = &slice[header.id_length()..slice.len()];
+        if slice.len() < header.colour_map_size() {
+            return Err(TgaError::IncompleteColourMap(
+                slice.len(), header.colour_map_size()
+            ));
+        }
+
         let colour_map_data = Box::new(
-            try!(ColourMapData::parse_from_buffer(buf, header))
+            slice[0..header.colour_map_size()].iter().map(|&x| x).collect::<Vec<u8>>()
         );
 
         // Parse the image data.
-        let width = header.width();
-        let height = header.height();
-        let bytes_per_pixel = (header.bits_per_pixel / 8) as usize;
-        let image_size = width * height * bytes_per_pixel;
+        let slice = &slice[header.colour_map_size()..slice.len()];
+        let image_size = header.width() * header.height() * header.bytes_per_pixel();
+        if slice.len() < image_size {
+            return Err(TgaError::IncompleteImageData(slice.len(), image_size));
+        }
         
-        /*
         let mut image_data = Box::new(vec![0; image_size]);
         let mut i = 0;
         while i < image_size {
-            let byte = bytes.next();
-            match byte {
-                Some(Ok(header)) => {
-                    match header & 0x80 {
-                        0 => {
-                            // We have a raw packet.
-                            let length = header & 0x7F;
-                            for _ in 0..length {
-
-                            }
-                        }
-                        _ => {
-                            // We have a run length packet.
-                            let length = header & 0x7F;
-                            let byte = bytes.next();
-                            match byte {
-                                Some(Ok(color)) => {
-
-                                }
-                                Some(Err(_)) => {
-
-                                }
-                                None => {
-
-                                }
-                            }
-                        }
-                    }
+            let packet_header = slice[i];
+            let packet_length = (packet_header & 0x7F) as usize;
+            if packet_header & 0x80 != 0 {
+                // We have a run length packet.
+                for j in 0..packet_length {
+                    image_data[i + j] = slice[i + 1];
+                    image_data[i + j + 1] = slice[1 + 2];
+                    image_data[i + j + 2] = slice[i + 3];
                 }
-                Some(Err(err)) => {
-                    return Err(
-                        TgaError::CorruptImageData(Box::new(err))
-                    );
-                }
-                None => {
-                    return Err(
-                        TgaError::IncompleteImageData(i, image_size)
-                    );
-                }
+
+                i += 3 * packet_length;
+            } else {
+                // We have a raw packet.
+                for j in 0..packet_length {
+                    image_data[i + j] = slice[i + 1];
+                    image_data[i + j + 1] = slice[i + 2];
+                    image_data[i + j + 2] = slice[i + 3];
+
+                    i += 3;
+                }    
             }
         }
-        */
-        */
-        unimplemented!()
+        
+        // Parse the extended image identification information from the end
+        // of the image data field.
+        let slice = &slice[image_size..slice.len()];
+        let extended_image_identification = Box::new(
+            slice.iter().map(|&x| x).collect::<Vec<u8>>()
+        );
+
+        let inner = RawTgaImage::new(
+            header, image_identification, colour_map_data, image_data, extended_image_identification
+        );
+
+        Ok(RunLengthEncodedRgb { inner: inner })
     }
 
     ///

@@ -264,20 +264,9 @@ impl TgaImage {
     }
 
     pub fn parse_from_file<F: Read>(f: &mut F) -> Result<TgaImage, TgaError> {
-        let header = try!(TgaHeader::parse_from_file(f));
-
-        // Determine whether we support the image format. We presently
-        // support 24 bit unmapped RGB images only. They can either be 
-        // uncompressed (type code 2) or run length encoded (type code 10).
-        match header.data_type_code {
-            2 => UncompressedRgb::parse_from_file(f, header).map(|image| { 
-                TgaImage::Type02(image)
-            }),
-            10 => RunLengthEncodedRgb::parse_from_file(f, header).map(|image| {
-                TgaImage::Type10(image)
-            }),
-            _ => Err(TgaError::Not24BitRgb(header.data_type_code as usize))
-        }
+        let mut buf = Vec::new();
+        f.read_to_end(&mut buf).unwrap();
+        Self::parse_from_buffer(&buf)
     }
 
     ///
@@ -408,30 +397,6 @@ struct ImageIdentification(Vec<u8>);
 
 impl ImageIdentification {
     #[inline]
-    fn parse_from_file<F: Read>(f: &mut F, header: TgaHeader) -> Result<Self, TgaError> {
-        let mut bytes = f.bytes();
-        let mut image_identification = Vec::new();
-        for i in 0..header.id_length {
-            let byte = bytes.next();
-            match byte {
-                Some(Ok(val)) => image_identification.push(val),
-                Some(Err(err)) => {
-                    return Err(
-                        TgaError::CorruptIdString(Box::new(err))
-                    );
-                }
-                None => {
-                    return Err(
-                        TgaError::IncompleteIdString(i as usize, header.id_length as usize)
-                    );
-                }
-            }
-        }
-
-        Ok(ImageIdentification(image_identification))
-    }
-
-    #[inline]
     fn parse_from_buffer(buf: &[u8], header: TgaHeader) -> Result<Self, TgaError> {
         let mut bytes = buf.bytes();
         let mut image_identification = Vec::new();
@@ -460,31 +425,6 @@ impl ImageIdentification {
 struct ColourMapData(Vec<u8>);
 
 impl ColourMapData {
-    #[inline]
-    fn parse_from_file<F: Read>(f: &mut F, header: TgaHeader) -> Result<ColourMapData, TgaError> {
-        let mut bytes = f.bytes();
-        let colour_map_size = header.colour_map_size();
-        let mut colour_map_data = Vec::new();
-        for i in 0..colour_map_size {
-            let byte = bytes.next();
-            match byte {
-                Some(Ok(val)) => colour_map_data.push(val),
-                Some(Err(err)) => {
-                    return Err(
-                        TgaError::CorruptColourMap(Box::new(err))
-                    );
-                }
-                None => {
-                    return Err(
-                        TgaError::IncompleteColourMap(i as usize, colour_map_size)
-                    );
-                }
-            }
-        }
-
-        Ok(ColourMapData(colour_map_data))
-    }
-
     #[inline]
     fn parse_from_buffer(buf: &[u8], header: TgaHeader) -> Result<ColourMapData, TgaError> {
         let colour_map_size = header.colour_map_size();
@@ -715,7 +655,6 @@ impl UncompressedRgb {
             try!(ImageIdentification::parse_from_buffer(slice, header))
         );
 
-        let mut bytes = slice.bytes();
         // Parse the colour map.
         let colour_map_data = Box::new(
             try!(ColourMapData::parse_from_buffer(slice, header))
@@ -726,6 +665,7 @@ impl UncompressedRgb {
         let height = header.height();
         let bytes_per_pixel = (header.bits_per_pixel / 8) as usize;
         let image_size = width * height * bytes_per_pixel;
+        let mut bytes = slice.bytes();
         
         let mut image_data = Box::new(Vec::new());
         for i in 0..image_size {
@@ -758,76 +698,6 @@ impl UncompressedRgb {
         let image = UncompressedRgb { inner: inner };
 
         Ok(image)
-    }
-
-    ///
-    /// Parse a TGA image from a file or stream. We assume that the image to be parsed
-    /// starts at the beginning of the buffer. In order to parse correctly,
-    /// the bytes of the file or stream must conform to the TGA image format. The 
-    /// first 18 bytes of the image should be the TGA header.
-    ///
-    pub fn parse_from_file<F: Read>(f: &mut F, header: TgaHeader) -> Result<Self, TgaError> {
-        // Determine whether we support the image format. We presently
-        // support 24 bit unmapped RGB images only. They can either be 
-        // uncompressed (type code 2) or run length encoded (type code 10).
-        if header.data_type_code != 2 {
-            return Err(TgaError::Not24BitRgb(header.data_type_code as usize));
-        }
-
-        // Targa 24 images can also be embedded in Targa 32 images, but we do
-        // not implement that (yet).
-        if header.bits_per_pixel != 24 {
-            return Err(TgaError::Not24BitRgb(header.data_type_code as usize));
-        }
-
-        // Parse the image identification.
-        let image_identification = Box::new(
-            try!(ImageIdentification::parse_from_file(f, header))
-        );
-
-        // Parse the colour map.
-        let colour_map_data = Box::new(
-            try!(ColourMapData::parse_from_file(f, header))
-        );
-
-        // Parse the image data.
-        let mut bytes = f.bytes();
-        let width = header.width();
-        let height = header.height();
-        let bytes_per_pixel = (header.bits_per_pixel / 8) as usize;
-        let image_size = width * height * bytes_per_pixel;
-        
-        let mut image_data = Box::new(Vec::new());
-        for i in 0..image_size {
-            let byte = bytes.next();
-            match byte {
-                Some(Ok(val)) => image_data.push(val),
-                Some(Err(err)) => {
-                    return Err(
-                        TgaError::CorruptImageData(Box::new(err))
-                    );
-                }
-                None => {
-                    return Err(
-                        TgaError::IncompleteImageData(i, image_size)
-                    );
-                }
-            }
-        }
-
-        // Parse the extended image identification information from the end
-        // of the image data field.
-        let extended_image_identification = Box::new(ImageIdentification(
-            bytes.map(|byte| byte.unwrap()).collect::<Vec<u8>>()
-        ));
-
-        let inner = RawTgaImage::new(
-            header, image_identification, colour_map_data, image_data, extended_image_identification
-        );
-
-        let image = UncompressedRgb { inner: inner };
-
-        Ok(image)        
     }
 
     ///
@@ -938,10 +808,6 @@ pub struct RunLengthEncodedRgb {
 
 impl RunLengthEncodedRgb {
     pub fn parse_from_buffer(buf: &[u8], header: TgaHeader) -> Result<RunLengthEncodedRgb, TgaError> {
-        unimplemented!()
-    }
-
-    pub fn parse_from_file<F: Read>(f: &mut F, header: TgaHeader)-> Result<RunLengthEncodedRgb, TgaError> {
         // Determine whether we support the image format. We presently
         // support 24 bit unmapped RGB images only. They can either be 
         // uncompressed (type code 2) or run length encoded (type code 10).
@@ -957,12 +823,12 @@ impl RunLengthEncodedRgb {
 
         // Parse the image identification.
         let image_identification = Box::new(
-            try!(ImageIdentification::parse_from_file(f, header))
+            try!(ImageIdentification::parse_from_buffer(buf, header))
         );
 
         // Parse the colour map.
         let colour_map_data = Box::new(
-            try!(ColourMapData::parse_from_file(f, header))
+            try!(ColourMapData::parse_from_buffer(buf, header))
         );
 
         // Parse the image data.

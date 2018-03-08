@@ -246,8 +246,8 @@ impl error::Error for TgaError {
 ///
 #[derive(PartialEq, Eq, Debug)]
 pub enum TgaImage {
-    UnmappedUncompressedRgb(RawTgaImage),
-    UnmappedRunLengthEncodedRgb(RawTgaImage),
+    Type02(UncompressedRgb),
+    Type10(RunLengthEncodedRgb),
 }
 
 impl TgaImage {
@@ -258,11 +258,11 @@ impl TgaImage {
         // support 24 bit unmapped RGB images only. They can either be 
         // uncompressed (type code 2) or run length encoded (type code 10).
         match header.data_type_code {
-            2 => RawTgaImage::parse_unmapped_rgb(buf, header).map(|image| { 
-                TgaImage::UnmappedUncompressedRgb(image)
+            2 => UncompressedRgb::parse_from_buffer(buf, header).map(|image| { 
+                TgaImage::Type02(image)
             }),
-            10 => RawTgaImage::parse_rle_rgb(buf, header).map(|image| {
-                TgaImage::UnmappedRunLengthEncodedRgb(image)
+            10 => RunLengthEncodedRgb::parse_from_buffer(buf, header).map(|image| {
+                TgaImage::Type10(image)
             }),
             _ => Err(TgaError::Not24BitRgb(header.data_type_code as usize))
         }
@@ -275,11 +275,11 @@ impl TgaImage {
         // support 24 bit unmapped RGB images only. They can either be 
         // uncompressed (type code 2) or run length encoded (type code 10).
         match header.data_type_code {
-            2 => RawTgaImage::parse_from_file(f, header).map(|image| { 
-                TgaImage::UnmappedUncompressedRgb(image)
+            2 => UncompressedRgb::parse_from_file(f, header).map(|image| { 
+                TgaImage::Type02(image)
             }),
-            10 => RawTgaImage::parse_from_file(f, header).map(|image| {
-                TgaImage::UnmappedRunLengthEncodedRgb(image)
+            10 => RunLengthEncodedRgb::parse_from_file(f, header).map(|image| {
+                TgaImage::Type10(image)
             }),
             _ => Err(TgaError::Not24BitRgb(header.data_type_code as usize))
         }
@@ -290,8 +290,8 @@ impl TgaImage {
     ///
     pub fn width(&self) -> usize {
         match self {
-            &TgaImage::UnmappedUncompressedRgb(ref image) |
-            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.width()
+            &TgaImage::Type02(ref image) => image.width(),
+            &TgaImage::Type10(ref image) => image.width()
         }
     }
 
@@ -300,8 +300,8 @@ impl TgaImage {
     ///
     pub fn height(&self) -> usize {
         match self {
-            &TgaImage::UnmappedUncompressedRgb(ref image) |
-            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.height()
+            &TgaImage::Type02(ref image) => image.height(),
+            &TgaImage::Type10(ref image) => image.height()
         }
     }
 
@@ -310,8 +310,8 @@ impl TgaImage {
     ///
     pub fn bits_per_pixel(&self) -> usize {
         match self {
-            &TgaImage::UnmappedUncompressedRgb(ref image) |
-            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.bits_per_pixel()
+            &TgaImage::Type02(ref image) => image.bits_per_pixel(),
+            &TgaImage::Type10(ref image) => image.bits_per_pixel()
         }
     }
 
@@ -322,15 +322,15 @@ impl TgaImage {
     ///
     pub fn color_map_type(&self) -> usize {
         match self {
-            &TgaImage::UnmappedUncompressedRgb(ref image) |
-            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.color_map_type()
+            &TgaImage::Type02(ref image) => image.color_map_type(),
+            &TgaImage::Type10(ref image) => image.color_map_type()
         }
     }
 
     pub fn data_type_code(&self) -> usize {
         match self {
-            &TgaImage::UnmappedUncompressedRgb(ref image) |
-            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.data_type_code()
+            &TgaImage::Type02(ref image) => image.data_type_code(),
+            &TgaImage::Type10(ref image) => image.data_type_code()
         }
     }
 
@@ -339,8 +339,8 @@ impl TgaImage {
     ///
     pub fn header(&self) -> TgaHeader {
         match self {
-            &TgaImage::UnmappedUncompressedRgb(ref image) |
-            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.header()
+            &TgaImage::Type02(ref image) => image.header(),
+            &TgaImage::Type10(ref image) => image.header()
         }
     }
 
@@ -352,8 +352,8 @@ impl TgaImage {
     ///
     pub fn pixels(&self) -> PixelIter {
         match self {
-            &TgaImage::UnmappedUncompressedRgb(ref image) |
-            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.pixels()
+            &TgaImage::Type02(ref image) => image.pixels(),
+            &TgaImage::Type10(ref image) => image.pixels()
         }
     }
 
@@ -366,8 +366,8 @@ impl TgaImage {
     ///
     pub fn image_data_length(&self) -> usize {
         match self {
-            &TgaImage::UnmappedUncompressedRgb(ref image) |
-            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.image_data_length()
+            &TgaImage::Type02(ref image) => image.image_data_length(),
+            &TgaImage::Type10(ref image) => image.image_data_length()
         }
     }
 
@@ -378,8 +378,8 @@ impl TgaImage {
     ///
     pub fn image_data_length_bytes(&self) -> usize {
         match self {
-            &TgaImage::UnmappedUncompressedRgb(ref image) |
-            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.image_data_length_bytes()
+            &TgaImage::Type02(ref image) => image.image_data_length_bytes(),
+            &TgaImage::Type10(ref image) => image.image_data_length_bytes()
         }
     }
 
@@ -390,8 +390,8 @@ impl TgaImage {
     ///
     pub fn image_identification(&self) -> &[u8] {
         match self {
-            &TgaImage::UnmappedUncompressedRgb(ref image) |
-            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.image_identification()
+            &TgaImage::Type02(ref image) => image.image_identification(),
+            &TgaImage::Type10(ref image) => image.image_identification()
         }
     }
 
@@ -402,14 +402,14 @@ impl TgaImage {
     ///
     pub fn extended_image_identification(&self) -> &[u8] {
         match self {
-            &TgaImage::UnmappedUncompressedRgb(ref image) |
-            &TgaImage::UnmappedRunLengthEncodedRgb(ref image) => image.extended_image_identification()
+            &TgaImage::Type02(ref image) => image.extended_image_identification(),
+            &TgaImage::Type10(ref image) => image.extended_image_identification()
         }
     }
 }
 
 ///
-/// A `RawTgaImage` is a structure containing the actual TGA image data.
+/// A `RawTgaImage` is a structure containing the underlying raw TGA image data.
 ///
 #[derive(PartialEq, Eq, Debug)]
 pub struct RawTgaImage {
@@ -450,12 +450,151 @@ impl RawTgaImage {
     }
 
     ///
-    /// Parse a TGA image from a buffer. We assume that the image to be parsed
-    /// starts at the beginning of the buffer. In order to parse correctly,
-    /// the bytes of the buffer must conform to the TGA image format. The 
-    /// first 18 bytes of the image should be the TGA header.
+    /// The function `width` returns the width of a TGA image, in pixels.
     ///
-    pub fn parse_unmapped_rgb(buf: &[u8], header: TgaHeader) -> Result<RawTgaImage, TgaError> {
+    #[inline]
+    pub fn width(&self) -> usize {
+        self.header.width()
+    }
+
+    ///
+    /// Return the height of a TGA image, in pixels.
+    ///
+    #[inline]
+    pub fn height(&self) -> usize {
+        self.header.height()
+    }
+
+    ///
+    /// Return the bit depth per pixel in a TGA Image.
+    ///
+    #[inline]
+    pub fn bits_per_pixel(&self) -> usize {
+        self.header.bits_per_pixel()
+    }
+
+    ///
+    /// Compute the colour map type. The colour map type is either `0` or `1`.
+    /// A `0` indicates that there is no colour map; a `1` indicates that a 
+    /// colour map is included.
+    ///
+    #[inline]
+    pub fn color_map_type(&self) -> usize {
+        self.header.color_map_type as usize
+    }
+
+    #[inline]
+    pub fn data_type_code(&self) -> usize {
+        self.header.data_type_code as usize
+    }
+
+    ///
+    /// The function `header` produces a copy of the TGA header.
+    ///
+    #[inline]
+    pub fn header(&self) -> TgaHeader {
+        self.header
+    }
+
+    ///
+    /// The function `pixels` generates an iterator over the pixels of the image.
+    /// It sweeps through the TGA image going from left to right in each row, and 
+    /// going from bottom to top. The first pixel returned is the bottom left corner;
+    /// the last pixel returned is the top right corner. 
+    ///
+    #[inline]
+    pub fn pixels(&self) -> PixelIter {
+        PixelIter {
+            inner: self.image_data.as_slice(),
+            current: [0; 3],
+            index: 0,
+        }
+    }
+
+    ///
+    /// The function `image_data_length` returns the size of the image,
+    /// in the total number of pixels. This satisfies the following invariant.
+    /// ```
+    /// self.image_data_length() == self.width() * self.height()
+    /// ```
+    ///
+    #[inline]
+    pub fn image_data_length(&self) -> usize {
+        self.image_data.len() / 3
+    }
+
+    ///
+    /// The function `image_data_length_bytes` computes the size of the 
+    /// image data, in the number of bytes. For an unmapped RGB image, this will
+    /// simply be `3 * image_data_length()`, since each RGB pixel is 3 bytes long.
+    ///
+    #[inline]
+    pub fn image_data_length_bytes(&self) -> usize {
+        self.image_data.len()
+    }
+
+    ///
+    /// The function `image_identification` returns a slice into the 
+    /// image identification field. This is a free-form field that immediately
+    /// follows the header.
+    ///
+    #[inline]
+    pub fn image_identification(&self) -> &[u8] {
+        &self.image_identification
+    }
+
+    ///
+    /// The function `extended_image_identification` returns a slice to the 
+    /// extended image identification data. This is the data that follows after
+    /// the image data that is too large for the image identification field.
+    ///
+    #[inline]
+    pub fn extended_image_identification(&self) -> &[u8] {
+        &self.extended_image_identification
+    }
+}
+
+pub struct PixelIter<'a> {
+    inner: &'a [u8],
+    current: [u8; 3],
+    index: usize,
+}
+
+impl<'a> Iterator for PixelIter<'a> {
+    type Item = [u8; 3];
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.inner.len() {
+            self.current[0] = self.inner[self.index];
+            self.current[1] = self.inner[self.index + 1];
+            self.current[2] = self.inner[self.index + 2];
+            self.index += 3;
+            
+            return Some(self.current);
+        }
+
+        None
+    }
+}
+
+#[derive(PartialEq, Eq, Debug)]
+pub struct UncompressedRgb {
+    inner: RawTgaImage,
+}
+
+impl UncompressedRgb {
+    ///
+    /// Parse a unmapped uncompressed TGA image from a buffer in memory. 
+    /// We assume that the image to be parsed starts at the beginning of the buffer. 
+    /// In order to parse correctly, the bytes of the buffer must conform to the TGA 
+    /// image format.
+    ///
+    pub fn parse_from_buffer(buf: &[u8], header: TgaHeader) -> Result<Self, TgaError> {
+        // Check that we were passed the correct TGA header.
+        if header.data_type_code != 2 {
+            return Err(TgaError::Not24BitRgb(header.data_type_code as usize));
+        }
+
         // Targa 24 images can also be embedded in Targa 32 images, but we do
         // not implement that (yet).
         if header.bits_per_pixel != 24 {
@@ -534,9 +673,11 @@ impl RawTgaImage {
             bytes.map(|byte| byte.unwrap()).collect::<Vec<u8>>()
         );
 
-        let image = Self::new(
+        let inner = RawTgaImage::new(
             header, image_identification, colour_map_data, image_data, extended_image_identification
         );
+
+        let image = UncompressedRgb { inner: inner };
 
         Ok(image)
     }
@@ -547,11 +688,11 @@ impl RawTgaImage {
     /// the bytes of the file or stream must conform to the TGA image format. The 
     /// first 18 bytes of the image should be the TGA header.
     ///
-    pub fn parse_from_file<F: Read>(f: &mut F, header: TgaHeader) -> Result<RawTgaImage, TgaError> {
+    pub fn parse_from_file<F: Read>(f: &mut F, header: TgaHeader) -> Result<Self, TgaError> {
         // Determine whether we support the image format. We presently
         // support 24 bit unmapped RGB images only. They can either be 
         // uncompressed (type code 2) or run length encoded (type code 10).
-        if (header.data_type_code != 2) && (header.data_type_code != 10) {
+        if header.data_type_code != 2 {
             return Err(TgaError::Not24BitRgb(header.data_type_code as usize));
         }
 
@@ -628,36 +769,37 @@ impl RawTgaImage {
             bytes.map(|byte| byte.unwrap()).collect::<Vec<u8>>()
         );
 
-        let image = Self::new(
+        let inner = RawTgaImage::new(
             header, image_identification, colour_map_data, image_data, extended_image_identification
         );
 
-        Ok(image)        
-    }
+        let image = UncompressedRgb { inner: inner };
 
-    fn parse_rle_rgb(buf: &[u8], header: TgaHeader) -> Result<RawTgaImage, TgaError> {
-        unimplemented!()
+        Ok(image)        
     }
 
     ///
     /// The function `width` returns the width of a TGA image, in pixels.
     ///
+    #[inline]
     pub fn width(&self) -> usize {
-        self.header.width()
+        self.inner.width()
     }
 
     ///
     /// Return the height of a TGA image, in pixels.
     ///
+    #[inline]
     pub fn height(&self) -> usize {
-        self.header.height()
+        self.inner.height()
     }
 
     ///
     /// Return the bit depth per pixel in a TGA Image.
     ///
+    #[inline]
     pub fn bits_per_pixel(&self) -> usize {
-        self.header.bits_per_pixel()
+        self.inner.bits_per_pixel()
     }
 
     ///
@@ -665,19 +807,22 @@ impl RawTgaImage {
     /// A `0` indicates that there is no colour map; a `1` indicates that a 
     /// colour map is included.
     ///
+    #[inline]
     pub fn color_map_type(&self) -> usize {
-        self.header.color_map_type as usize
+        self.inner.color_map_type()
     }
 
+    #[inline]
     pub fn data_type_code(&self) -> usize {
-        self.header.data_type_code as usize
+        self.inner.data_type_code()
     }
 
     ///
     /// The function `header` produces a copy of the TGA header.
     ///
+    #[inline]
     pub fn header(&self) -> TgaHeader {
-        self.header
+        self.inner.header()
     }
 
     ///
@@ -686,12 +831,9 @@ impl RawTgaImage {
     /// going from bottom to top. The first pixel returned is the bottom left corner;
     /// the last pixel returned is the top right corner. 
     ///
+    #[inline]
     pub fn pixels(&self) -> PixelIter {
-        PixelIter {
-            inner: self.image_data.as_slice(),
-            current: [0; 3],
-            index: 0,
-        }
+        self.inner.pixels()
     }
 
     ///
@@ -701,8 +843,9 @@ impl RawTgaImage {
     /// self.image_data_length() == self.width() * self.height()
     /// ```
     ///
+    #[inline]
     pub fn image_data_length(&self) -> usize {
-        self.image_data.len() / 3
+        self.inner.image_data_length()
     }
 
     ///
@@ -710,8 +853,9 @@ impl RawTgaImage {
     /// image data, in the number of bytes. For an unmapped RGB image, this will
     /// simply be `3 * image_data_length()`, since each RGB pixel is 3 bytes long.
     ///
+    #[inline]
     pub fn image_data_length_bytes(&self) -> usize {
-        self.image_data.len()
+        self.inner.image_data_length_bytes()
     }
 
     ///
@@ -719,8 +863,9 @@ impl RawTgaImage {
     /// image identification field. This is a free-form field that immediately
     /// follows the header.
     ///
+    #[inline]
     pub fn image_identification(&self) -> &[u8] {
-        &self.image_identification
+        self.inner.image_identification()
     }
 
     ///
@@ -728,31 +873,124 @@ impl RawTgaImage {
     /// extended image identification data. This is the data that follows after
     /// the image data that is too large for the image identification field.
     ///
+    #[inline]
     pub fn extended_image_identification(&self) -> &[u8] {
-        &self.extended_image_identification
+        self.inner.extended_image_identification()
     }
 }
 
-pub struct PixelIter<'a> {
-    inner: &'a [u8],
-    current: [u8; 3],
-    index: usize,
+#[derive(PartialEq, Eq, Debug)]
+pub struct RunLengthEncodedRgb {
+    inner: RawTgaImage,
 }
 
-impl<'a> Iterator for PixelIter<'a> {
-    type Item = [u8; 3];
+impl RunLengthEncodedRgb {
+    pub fn parse_from_buffer(buf: &[u8], header: TgaHeader) -> Result<RunLengthEncodedRgb, TgaError> {
+        unimplemented!()
+    }
 
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.index < self.inner.len() {
-            self.current[0] = self.inner[self.index];
-            self.current[1] = self.inner[self.index + 1];
-            self.current[2] = self.inner[self.index + 2];
-            self.index += 3;
-            
-            return Some(self.current);
-        }
+    pub fn parse_from_file<F: Read>(f: &mut F, header: TgaHeader)-> Result<RunLengthEncodedRgb, TgaError> {
+        unimplemented!()
+    }
 
-        None
+    ///
+    /// The function `width` returns the width of a TGA image, in pixels.
+    ///
+    #[inline]
+    pub fn width(&self) -> usize {
+        self.inner.width()
+    }
+
+    ///
+    /// Return the height of a TGA image, in pixels.
+    ///
+    #[inline]
+    pub fn height(&self) -> usize {
+        self.inner.height()
+    }
+
+    ///
+    /// Return the bit depth per pixel in a TGA Image.
+    ///
+    #[inline]
+    pub fn bits_per_pixel(&self) -> usize {
+        self.inner.bits_per_pixel()
+    }
+
+    ///
+    /// Compute the colour map type. The colour map type is either `0` or `1`.
+    /// A `0` indicates that there is no colour map; a `1` indicates that a 
+    /// colour map is included.
+    ///
+    #[inline]
+    pub fn color_map_type(&self) -> usize {
+        self.inner.color_map_type()
+    }
+
+    #[inline]
+    pub fn data_type_code(&self) -> usize {
+        self.inner.data_type_code()
+    }
+
+    ///
+    /// The function `header` produces a copy of the TGA header.
+    ///
+    #[inline]
+    pub fn header(&self) -> TgaHeader {
+        self.inner.header()
+    }
+
+    ///
+    /// The function `pixels` generates an iterator over the pixels of the image.
+    /// It sweeps through the TGA image going from left to right in each row, and 
+    /// going from bottom to top. The first pixel returned is the bottom left corner;
+    /// the last pixel returned is the top right corner. 
+    ///
+    #[inline]
+    pub fn pixels(&self) -> PixelIter {
+        self.inner.pixels()
+    }
+
+    ///
+    /// The function `image_data_length` returns the size of the image,
+    /// in the total number of pixels. This satisfies the following invariant.
+    /// ```
+    /// self.image_data_length() == self.width() * self.height()
+    /// ```
+    ///
+    #[inline]
+    pub fn image_data_length(&self) -> usize {
+        self.inner.image_data_length()
+    }
+
+    ///
+    /// The function `image_data_length_bytes` computes the size of the 
+    /// image data, in the number of bytes. For an unmapped RGB image, this will
+    /// simply be `3 * image_data_length()`, since each RGB pixel is 3 bytes long.
+    ///
+    #[inline]
+    pub fn image_data_length_bytes(&self) -> usize {
+        self.inner.image_data_length_bytes()
+    }
+
+    ///
+    /// The function `image_identification` returns a slice into the 
+    /// image identification field. This is a free-form field that immediately
+    /// follows the header.
+    ///
+    #[inline]
+    pub fn image_identification(&self) -> &[u8] {
+        self.inner.image_identification()
+    }
+
+    ///
+    /// The function `extended_image_identification` returns a slice to the 
+    /// extended image identification data. This is the data that follows after
+    /// the image data that is too large for the image identification field.
+    ///
+    #[inline]
+    pub fn extended_image_identification(&self) -> &[u8] {
+        self.inner.extended_image_identification()
     }
 }
 

@@ -790,8 +790,8 @@ impl RunLengthEncodedRgb {
         // Parse the colour map data.
         let slice = &slice[header.id_length()..slice.len()];
         if slice.len() < header.colour_map_size() {
-            return Err(TgaError::IncompleteColourMap(
-                slice.len(), header.colour_map_size()
+            return Err(
+                TgaError::IncompleteColourMap(slice.len(), header.colour_map_size()
             ));
         }
 
@@ -808,27 +808,36 @@ impl RunLengthEncodedRgb {
         
         let mut image_data = Box::new(vec![0; image_size]);
         let mut i = 0;
-        while i < image_size {
-            let packet_header = slice[i];
+        let mut slice_i = 0;
+        loop {
+            let packet_header = slice[slice_i];
             let packet_length = (packet_header & 0x7F) as usize;
             if packet_header & 0x80 != 0 {
                 // We have a run length packet.
                 for j in 0..packet_length {
-                    image_data[i + j] = slice[i + 1];
-                    image_data[i + j + 1] = slice[1 + 2];
-                    image_data[i + j + 2] = slice[i + 3];
+                    image_data[i + j + 0] = slice[slice_i + 1];
+                    image_data[i + j + 1] = slice[slice_i + 2];
+                    image_data[i + j + 2] = slice[slice_i + 3];
                 }
 
                 i += 3 * packet_length;
+                slice_i += 3;
             } else {
                 // We have a raw packet.
                 for j in 0..packet_length {
-                    image_data[i + j] = slice[i + 1];
-                    image_data[i + j + 1] = slice[i + 2];
-                    image_data[i + j + 2] = slice[i + 3];
+                    image_data[i + j] = slice[slice_i + 1];
+                    image_data[i + j + 1] = slice[slice_i + 2];
+                    image_data[i + j + 2] = slice[slice_i + 3];
 
                     i += 3;
-                }    
+                    slice_i += 3;
+                }
+
+                slice_i += 1;
+            }
+
+            if i > image_size {
+                break;
             }
         }
         

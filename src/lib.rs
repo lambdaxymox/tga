@@ -870,11 +870,6 @@ impl RunLengthEncodedRgb {
             }
         }
 
-        // Check that the lengths match up here.
-        // The parser should have parsed exactly as many bytes as were claimed
-        // to be contained in the compressed data from the size of the image in
-        // the header.
-
         // Parse the extended image identification information from the end
         // of the image data field.
         let slice = &slice[slice_i..slice.len()];

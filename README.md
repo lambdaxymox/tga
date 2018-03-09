@@ -6,7 +6,7 @@ To use `libtga`, add the following line to your `Cargo.toml` file.
 ```toml
 [dependencies]
 # ...
-libtga = "0.2.8"
+libtga = "0.2.12"
 # ...
 ```
 Then in your `lib.rs`, `main.rs` or wherever your main source file is, add the crate declaration

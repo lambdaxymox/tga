@@ -802,45 +802,76 @@ impl RunLengthEncodedRgb {
         // Parse the image data.
         let slice = &slice[header.colour_map_size()..slice.len()];
         let image_size = header.width() * header.height() * header.bytes_per_pixel();
-        if slice.len() < image_size {
-            return Err(TgaError::IncompleteImageData(slice.len(), image_size));
-        }
-        
-        let mut image_data = Box::new(vec![0; image_size]);
-        let mut i = 0;
+
+        // Search the buffer for all the data packets. Here we count
+        // the number of bytes of image data we have available, and compare it
+        // against the size of the image that the TGA image header claims it is.
+        // Simultaneously, we find where the end of the image data is.
         let mut slice_i = 0;
-        loop {
+        let mut image_data_found = 0;
+        while (slice_i < slice.len()) && (image_data_found < image_size) {
             let packet_header = slice[slice_i];
             let packet_length = (packet_header & 0x7F) as usize;
             if packet_header & 0x80 != 0 {
                 // We have a run length packet.
-                for j in 0..packet_length {
-                    image_data[i + j + 0] = slice[slice_i + 1];
-                    image_data[i + j + 1] = slice[slice_i + 2];
-                    image_data[i + j + 2] = slice[slice_i + 3];
-                }
-
-                i += 3 * packet_length;
-                slice_i += 3;
+                image_data_found += 3 * packet_length;
+                slice_i += 4;
             } else {
                 // We have a raw packet.
-                for j in 0..packet_length {
-                    image_data[i + j] = slice[slice_i + 1];
-                    image_data[i + j + 1] = slice[slice_i + 2];
-                    image_data[i + j + 2] = slice[slice_i + 3];
+                image_data_found += 3 * packet_length;
+                slice_i += 3 * packet_length + 1;
+            }
+            println!("STEP: image_data_found = {}; image_size = {}; slice_i = {}; slice.len() = {}", image_data_found, image_size, slice_i, slice.len());
+        }
+
+        if (image_data_found != image_size) || (slice_i > slice.len()) {
+            // Either not enough image data was found, or too much was found.
+            // Either way, the image data is corrupt.
+            return Err(
+                TgaError::IncompleteImageData(image_data_found, image_size)
+            );
+        }
+
+        // The slice of the buffer that's the actual image data we
+        // searched through above.
+        let image_slice = &slice[0..slice_i];
+        slice_i = 0;
+        let mut image_data = Box::new(vec![0; image_size]);
+        let mut i = 0;
+        while i < image_size {
+            let packet_header = slice[slice_i];
+            let packet_length = (packet_header & 0x7F) as usize;
+            if packet_header & 0x80 != 0 {
+                // We have a run length packet.
+                for _ in 0..packet_length {
+                    image_data[i + 0] = image_slice[slice_i + 1];
+                    image_data[i + 1] = image_slice[slice_i + 2];
+                    image_data[i + 2] = image_slice[slice_i + 3];
+                    i += 3;
+                }
+                // Jump to the next packet.
+                slice_i += 4;
+            } else {
+                // We have a raw packet.
+                for _ in 0..packet_length {
+                    image_data[i + 0] = image_slice[slice_i + 1];
+                    image_data[i + 1] = image_slice[slice_i + 2];
+                    image_data[i + 2] = image_slice[slice_i + 3];
 
                     i += 3;
+                    // Jump to the next sequence element in the binary blob.
                     slice_i += 3;
                 }
-
+                // Jump to the next packet.
                 slice_i += 1;
             }
-
-            if i > image_size {
-                break;
-            }
         }
-        
+
+        // Check that the lengths match up here.
+        // The parser should have parsed exactly as many bytes as were claimed
+        // to be contained in the compressed data from the size of the image in
+        // the header.
+
         // Parse the extended image identification information from the end
         // of the image data field.
         let slice = &slice[image_size..slice.len()];

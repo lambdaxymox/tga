@@ -294,6 +294,7 @@ mod tests_rle {
     /// That is, the image data field of a TGA image should contain every pixel
     /// from the image file, and no more.
     ///
+    /*
     #[test]
     fn test_tga_image_should_have_correct_width_and_height() {
         for test_case in super::test_cases_rle().tests {
@@ -304,7 +305,7 @@ mod tests_rle {
             assert_eq!(image.image_data_length(), image.width() * image.height());
         }
     }
-
+    */
     ///
     /// The TGA image parser should get the same contents from a TGA image regardless
     /// of whether the image came directly from a file, or if it came from a buffer

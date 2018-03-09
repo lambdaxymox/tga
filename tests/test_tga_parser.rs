@@ -378,5 +378,20 @@ mod tests_rle {
 
         assert!(pixels.all(|pixel| pixel == first_pixel));
     }
+
+    /// 
+    /// An decoded RLE encoded TGA image should be exactly the same as an uncompressed
+    /// RGB image.
+    ///
+    #[test]
+    fn test_a_decoded_rle_rgb_tga_image_should_be_the_same_as_an_unmapped_one() {
+        let mut file_rle = File::open(sample::LENA_RLE_TGA).unwrap();
+        let image_rle = TgaImage::parse_from_file(&mut file_rle).unwrap();
+
+        let mut file = File::open(sample::LENA_RLE_TGA).unwrap();
+        let image = TgaImage::parse_from_file(&mut file).unwrap();
+
+        assert_eq!(image_rle, image);
+    }
 }
 

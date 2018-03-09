@@ -811,7 +811,9 @@ impl RunLengthEncodedRgb {
         let mut image_data_found = 0;
         while (slice_i < slice.len()) && (image_data_found < image_size) {
             let packet_header = slice[slice_i];
-            let packet_length = (packet_header & 0x7F) as usize;
+            // A run length encoded packet never represents a run of zero.
+            // Hence, we add 1 to get the true run length.
+            let packet_length = (packet_header & 0x7F) as usize + 1;
             if packet_header & 0x80 != 0 {
                 // We have a run length packet.
                 image_data_found += 3 * packet_length;
@@ -821,7 +823,6 @@ impl RunLengthEncodedRgb {
                 image_data_found += 3 * packet_length;
                 slice_i += 3 * packet_length + 1;
             }
-            println!("STEP: image_data_found = {}; image_size = {}; slice_i = {}; slice.len() = {}", image_data_found, image_size, slice_i, slice.len());
         }
 
         if (image_data_found != image_size) || (slice_i > slice.len()) {
@@ -839,8 +840,10 @@ impl RunLengthEncodedRgb {
         let mut image_data = Box::new(vec![0; image_size]);
         let mut i = 0;
         while i < image_size {
-            let packet_header = slice[slice_i];
-            let packet_length = (packet_header & 0x7F) as usize;
+            let packet_header = image_slice[slice_i];
+            // A run length encoded packet never represents a run of zero.
+            // Hence, we add 1 to get the true run length.
+            let packet_length = (packet_header & 0x7F) as usize + 1;
             if packet_header & 0x80 != 0 {
                 // We have a run length packet.
                 for _ in 0..packet_length {
@@ -859,7 +862,7 @@ impl RunLengthEncodedRgb {
                     image_data[i + 2] = image_slice[slice_i + 3];
 
                     i += 3;
-                    // Jump to the next sequence element in the binary blob.
+                    // Jump to the next element in the raw packet.
                     slice_i += 3;
                 }
                 // Jump to the next packet.
@@ -874,7 +877,7 @@ impl RunLengthEncodedRgb {
 
         // Parse the extended image identification information from the end
         // of the image data field.
-        let slice = &slice[image_size..slice.len()];
+        let slice = &slice[slice_i..slice.len()];
         let extended_image_identification = Box::new(
             slice.iter().map(|&x| x).collect::<Vec<u8>>()
         );

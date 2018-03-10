@@ -24,15 +24,21 @@ pub const LENA_RLE_TGA_WIDTH: usize = 512;
 pub const LENA_RLE_TGA_HEIGHT: usize = 512;
 pub const LENA_RLE_TGA_BITS_PER_PIXEL: usize = 24;
 pub const LENA_RLE_TGA_COLOR_MAP_TYPE: usize = 0;
-pub const LENA_RLE_TGA_DATA_TYPE_CODE: usize = 2;
+pub const LENA_RLE_TGA_DATA_TYPE_CODE: usize = 10;
 
 pub const COLOR_RLE_TGA: &str = "sample/color_rle.tga";
 pub const COLOR_RLE_TGA_WIDTH: usize = 640;
 pub const COLOR_RLE_TGA_HEIGHT: usize = 480;
 pub const COLOR_RLE_TGA_BITS_PER_PIXEL: usize = 24;
 pub const COLOR_RLE_TGA_COLOR_MAP_TYPE: usize = 0;
-pub const COLOR_RLE_TGA_DATA_TYPE_CODE: usize = 2;
+pub const COLOR_RLE_TGA_DATA_TYPE_CODE: usize = 10;
 
+pub const ONE_RLE_TGA: &str = "sample/one_rle.tga";
+pub const ONE_RLE_TGA_WIDTH: usize = 1;
+pub const ONE_RLE_TGA_HEIGHT: usize = 1;
+pub const ONE_RLE_TGA_BITS_PER_PIXEL: usize = 24;
+pub const ONE_RLE_TGA_COLOR_MAP_TYPE: usize = 0;
+pub const ONE_RLE_TGA_DATA_TYPE_CODE: usize = 10;
 
 #[cfg(test)]
 mod tests {
@@ -46,7 +52,7 @@ mod tests {
         TestCase {
             data: vec![
                 super::LENA_TGA,     super::COLOR_TGA,     super::ONE_TGA, 
-                super::LENA_RLE_TGA, super::COLOR_RLE_TGA,
+                super::LENA_RLE_TGA, super::COLOR_RLE_TGA, super::ONE_RLE_TGA,
             ]
         }
     }

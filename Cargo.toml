@@ -1,6 +1,6 @@
 [package]
 name = "libtga"
-version = "0.2.12"
+version = "0.2.13"
 authors = ["Stallmanifold <stallmanifold@gmail.com>"]
 readme = "README.md"
 repository = "https://github.com/stallmanifold/libtga"

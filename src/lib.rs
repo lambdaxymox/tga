@@ -11,6 +11,7 @@ use std::error;
 use std::fmt;
 use std::io::Read;
 use std::io;
+use std::cmp::Eq;
 
 
 /// The length of a TGA Header is always 18 bytes.
@@ -441,6 +442,23 @@ impl<'a> Iterator for PixelIter<'a> {
     }
 }
 
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Scanline(Vec<[u8; 3]>);
+
+impl PartialEq<[u8]> for Scanline {
+    fn eq(&self, rhs: &[u8]) -> bool {
+        if rhs.len() == 3 * self.0.len() {
+            let pixels = &self.0;
+            let rhs_pixels = rhs.chunks(3);
+            return pixels.iter().zip(rhs_pixels).all(
+                |(pixel, rhs_pixel)| { pixel == rhs_pixel }
+            );
+        }
+
+        false
+    }
+}
+
 pub struct ScanlineIter<'a> {
     inner: &'a [u8],
     height: usize,
@@ -449,7 +467,7 @@ pub struct ScanlineIter<'a> {
 }
 
 impl<'a> Iterator for ScanlineIter<'a> {
-    type Item = Vec<[u8; 3]>;
+    type Item = Scanline;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.row < self.height {
@@ -464,7 +482,7 @@ impl<'a> Iterator for ScanlineIter<'a> {
             }
             self.row += 1;
 
-            return Some(scanline);
+            return Some(Scanline(scanline));
         }
 
         None

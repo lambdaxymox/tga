@@ -474,10 +474,11 @@ impl<'a> Iterator for ScanlineIter<'a> {
             let mut scanline = vec![[0; 3]; self.width];
             for col in 0..self.width {
                 let pixel = [
-                    self.inner[3*self.row*col], 
-                    self.inner[3*self.row*col + 1], 
-                    self.inner[3*self.row*col + 2]
+                    self.inner[self.row * (3 * self.width) + (3*col)], 
+                    self.inner[self.row * (3 * self.width) + (3*col) + 1], 
+                    self.inner[self.row * (3 * self.width) + (3*col) + 2],
                 ];
+                println!("{:?}", pixel);
                 scanline[col] = pixel;
             }
             self.row += 1;

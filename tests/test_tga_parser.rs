@@ -193,6 +193,23 @@ fn test_tga_image_pixel_iterator() {
     }
 }
 
+/*
+#[test]
+fn test_tga_image_scanline_iterator() {
+    let mut file = File::open(sample::LENA_TGA).unwrap();
+    let image = TgaImage::parse_from_file(&mut file).unwrap();
+    
+    let scanlines = image.scanlines();
+    let pixels = image.pixels();
+    let scanlines_from_pixels = pixels.chunks(3 * image.width());
+
+    for scanline, scanline_from_pixels in scanlines.zip(scanlines_from_pixels) {
+        
+
+        assert_eq!(scanline, scanline_from_pixels);
+    }
+}
+*/
 ///
 /// The TGA image pixel iterator should return every pixel in the image.
 ///

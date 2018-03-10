@@ -403,6 +403,10 @@ impl RawTgaImage {
         &self.image_identification
     }
 
+    #[inline]
+    fn image_data(&self) -> &[u8] {
+        &self.image_data
+    }
     ///
     /// The function `extended_image_identification` returns a slice to the 
     /// extended image identification data. This is the data that follows after
@@ -621,6 +625,11 @@ impl UncompressedRgb {
     #[inline]
     pub fn image_data_length_bytes(&self) -> usize {
         self.inner.image_data_length_bytes()
+    }
+
+    #[inline]
+    fn image_data(&self) -> &[u8] {
+        self.inner.image_data()
     }
 
     ///
@@ -846,6 +855,11 @@ impl RunLengthEncodedRgb {
         self.inner.image_data_length()
     }
 
+    #[inline]
+    fn image_data(&self) -> &[u8] {
+        self.inner.image_data()
+    }
+
     ///
     /// The function `image_data_length_bytes` computes the size of the 
     /// image data, in the number of bytes. For an unmapped RGB image, this will
@@ -1015,6 +1029,14 @@ impl TgaImage {
         match self {
             &TgaImage::Type02(ref image) => image.image_data_length_bytes(),
             &TgaImage::Type10(ref image) => image.image_data_length_bytes()
+        }
+    }
+
+    #[inline]
+    fn image_data(&self) -> &[u8] {
+        match self {
+            &TgaImage::Type02(ref image) => image.image_data(),
+            &TgaImage::Type10(ref image) => image.image_data()
         }
     }
 

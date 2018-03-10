@@ -1033,7 +1033,7 @@ impl TgaImage {
     }
 
     #[inline]
-    fn image_data(&self) -> &[u8] {
+    pub fn image_data(&self) -> &[u8] {
         match self {
             &TgaImage::Type02(ref image) => image.image_data(),
             &TgaImage::Type10(ref image) => image.image_data()

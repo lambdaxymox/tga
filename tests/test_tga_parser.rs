@@ -176,7 +176,7 @@ fn test_parse_from_buffer_and_parse_from_file_should_have_the_same_contents() {
 /// in memory. Here we do it in another way using an iterator.
 ///
 #[test]
-fn test_tga_image_iterator() {
+fn test_tga_image_pixel_iterator() {
     let mut file = File::open(sample::LENA_TGA).unwrap();
     let image_from_file = TgaImage::parse_from_file(&mut file).unwrap();
     
@@ -332,7 +332,7 @@ mod tests_rle {
     /// in memory. Here we do it in another way using an iterator.
     ///
     #[test]
-    fn test_tga_image_iterator() {
+    fn test_tga_image_pixel_iterator() {
         let mut file = File::open(sample::LENA_RLE_TGA).unwrap();
         let image_from_file = TgaImage::parse_from_file(&mut file).unwrap();
     

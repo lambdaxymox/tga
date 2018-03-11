@@ -237,11 +237,13 @@ mod tests_unmapped_rgb {
             let image_from_file = TgaImage::parse_from_file(&mut test_case.as_slice()).unwrap();
             let image_from_buffer = TgaImage::parse_from_buffer(test_case.as_slice()).unwrap();
 
-            let pixels_from_file = image_from_file.pixels();
-            let pixels_from_buffer = image_from_buffer.pixels();
+            let pixels_ff = image_from_file.pixels();
+            let pixels_fb = image_from_buffer.pixels();
 
-            assert!(pixels_from_file.zip(pixels_from_buffer).all(
-                |(pixel_ff, pixel_fb)| { pixel_ff == pixel_fb }
+            assert!(pixels_ff.zip(pixels_fb).all(
+                |(pixel_ff, pixel_fb)| {
+                    pixel_ff == pixel_fb 
+                }
             ));
         }
     }
@@ -385,12 +387,14 @@ mod tests_rle_rgb {
             let image_from_file = TgaImage::parse_from_file(&mut test_case.as_slice()).unwrap();
             let image_from_buffer = TgaImage::parse_from_buffer(test_case.as_slice()).unwrap();
 
-            let pixels_from_file = image_from_file.pixels();
-            let pixels_from_buffer = image_from_buffer.pixels();
+            let pixels_ff = image_from_file.pixels();
+            let pixels_fb = image_from_buffer.pixels();
 
-            for (pixel_ff, pixel_fb) in pixels_from_file.zip(pixels_from_buffer) {
-                assert_eq!(pixel_ff, pixel_fb);
-            }
+            assert!(pixels_ff.zip(pixels_fb).all(
+                |(pixel_ff, pixel_fb)| {
+                    pixel_ff == pixel_fb
+                }
+            ));
         }
     }
 

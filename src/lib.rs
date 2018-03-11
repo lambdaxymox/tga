@@ -538,7 +538,13 @@ impl UncompressedRgb {
 
         // Parse the extended image identification information from the end
         // of the image data field.
-        let slice = &slice[image_size..slice.len()];
+        let mut slice = &slice[image_size..slice.len()];
+        
+        // Check whether the end of the remaining bytes is a TGA image footer.
+        if slice[(slice.len() - 26)..slice.len()] == TGA_FOOTER {
+            slice = &slice[0..(slice.len() - 26)];
+        }
+
         let extended_image_identification = Rc::new(
             slice.iter().map(|&x| x).collect::<Vec<u8>>()
         );
@@ -778,7 +784,13 @@ impl RunLengthEncodedRgb {
 
         // Parse the extended image identification information from the end
         // of the image data field.
-        let slice = &slice[slice_i..slice.len()];
+        let mut slice = &slice[slice_i..slice.len()];
+        
+        // Check whether the end of the remaining bytes is a TGA image footer.
+        if slice[(slice.len() - 26)..slice.len()] == TGA_FOOTER {
+            slice = &slice[0..(slice.len() - 26)];
+        }
+
         let extended_image_identification = Rc::new(
             slice.iter().map(|&x| x).collect::<Vec<u8>>()
         );

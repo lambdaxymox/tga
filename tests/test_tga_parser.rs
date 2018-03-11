@@ -8,7 +8,7 @@ use tga::TgaImage;
 mod sample;
 
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 struct TestCaseConfig<'a> {
     filename: &'a str,
     width: usize,
@@ -18,6 +18,7 @@ struct TestCaseConfig<'a> {
     data_type_code: usize,
 }
 
+#[derive(Clone, Debug)]
 struct TestCase<'a> {
     filename: &'a str,
     width: usize,
@@ -25,14 +26,14 @@ struct TestCase<'a> {
     bits_per_pixel: usize,
     color_map_type: usize,
     data_type_code: usize,
-    raw_image: Vec<u8>,
+    image: Vec<u8>,
 }
 
 impl<'a> TestCase<'a> {
     fn new(config: TestCaseConfig) -> TestCase {
         let mut file = File::open(config.filename).unwrap();
-        let mut raw_image = Vec::new();
-        file.read_to_end(&mut raw_image).unwrap();
+        let mut image = Vec::new();
+        file.read_to_end(&mut image).unwrap();
 
         TestCase {
             filename: config.filename,
@@ -41,11 +42,17 @@ impl<'a> TestCase<'a> {
             bits_per_pixel: config.bits_per_pixel,
             color_map_type: config.color_map_type,
             data_type_code: config.data_type_code,
-            raw_image: raw_image,
+            image: image,
         }
     }
+
+    fn as_slice(&self) -> &[u8] {
+        self.image.as_slice()
+    }
+
 }
 
+#[derive(Clone, Debug)]
 struct Test<'a> {
     tests: Vec<TestCase<'a>>,
 }
@@ -147,9 +154,7 @@ mod tests_unmapped_rgb {
     #[test]
     fn test_parse_from_file_succeeds() {
         for test_case in super::test_cases().iter() {
-            let filename = test_case.filename;
-            let mut file = File::open(filename).unwrap();
-            let image = TgaImage::parse_from_file(&mut file);
+            let image = TgaImage::parse_from_file(&mut test_case.as_slice());
         
             assert!(image.is_ok());
         }
@@ -162,7 +167,7 @@ mod tests_unmapped_rgb {
     #[test]
     fn test_parse_from_buffer() {
         for test_case in super::test_cases().iter() {
-            let image = TgaImage::parse_from_buffer(&test_case.raw_image);
+            let image = TgaImage::parse_from_buffer(test_case.as_slice());
         
             assert!(image.is_ok());
         }
@@ -178,7 +183,7 @@ mod tests_unmapped_rgb {
     #[test]
     fn test_parsed_tga_image_matches_expected_header_data() {
         for test_case in super::test_cases().iter() {
-            let image = TgaImage::parse_from_buffer(&test_case.raw_image).unwrap();
+            let image = TgaImage::parse_from_buffer(test_case.as_slice()).unwrap();
 
             assert_eq!(image.width(), test_case.width);
             assert_eq!(image.height(), test_case.height);
@@ -200,9 +205,7 @@ mod tests_unmapped_rgb {
     #[test]
     fn test_tga_image_should_have_correct_width_and_height() {
         for test_case in super::test_cases().iter() {
-            let filename = test_case.filename;
-            let mut file = File::open(filename).unwrap();
-            let image = TgaImage::parse_from_file(&mut file).unwrap();
+            let image = TgaImage::parse_from_file(&mut test_case.as_slice()).unwrap();
 
             assert_eq!(image.image_data_length(), image.width() * image.height());
         }
@@ -216,10 +219,8 @@ mod tests_unmapped_rgb {
     #[test]
     fn test_parse_from_buffer_and_parse_from_file_should_have_the_same_contents() {
         for test_case in super::test_cases().iter() {
-            let filename = test_case.filename;
-            let mut file = File::open(filename).unwrap();
-            let image_from_file = TgaImage::parse_from_file(&mut file).unwrap();
-            let image_from_buffer = TgaImage::parse_from_buffer(&test_case.raw_image).unwrap();
+            let image_from_file = TgaImage::parse_from_file(&mut test_case.as_slice()).unwrap();
+            let image_from_buffer = TgaImage::parse_from_buffer(test_case.as_slice()).unwrap();
 
             assert_eq!(image_from_file, image_from_buffer);
         }
@@ -232,20 +233,17 @@ mod tests_unmapped_rgb {
     ///
     #[test]
     fn test_tga_image_pixel_iterator() {
-        let mut file = File::open(sample::LENA_TGA).unwrap();
-        let image_from_file = TgaImage::parse_from_file(&mut file).unwrap();
-    
-        let mut file = File::open(sample::LENA_TGA).unwrap();
-        let mut buffer = Vec::new();
-        file.read_to_end(&mut buffer).unwrap();
-        let image_from_buffer = TgaImage::parse_from_buffer(&buffer).unwrap();
+        for test_case in super::test_cases().iter() {
+            let image_from_file = TgaImage::parse_from_file(&mut test_case.as_slice()).unwrap();
+            let image_from_buffer = TgaImage::parse_from_buffer(test_case.as_slice()).unwrap();
 
-        let pixels_from_file = image_from_file.pixels();
-        let pixels_from_buffer = image_from_buffer.pixels();
+            let pixels_from_file = image_from_file.pixels();
+            let pixels_from_buffer = image_from_buffer.pixels();
 
-        assert!(pixels_from_file.zip(pixels_from_buffer).all(
-            |(pixel_ff, pixel_fb)| { pixel_ff == pixel_fb }
-        ));
+            assert!(pixels_from_file.zip(pixels_from_buffer).all(
+                |(pixel_ff, pixel_fb)| { pixel_ff == pixel_fb }
+            ));
+        }
     }
 
     #[test]
@@ -268,7 +266,7 @@ mod tests_unmapped_rgb {
     #[test]
     fn test_tga_image_iterator_should_return_every_pixel_in_image() {
         for test_case in super::test_cases().iter() {
-            let image = TgaImage::parse_from_buffer(&test_case.raw_image).unwrap();
+            let image = TgaImage::parse_from_buffer(test_case.as_slice()).unwrap();
             let pixels = image.pixels().collect::<Vec<[u8; 3]>>();
 
             assert_eq!(pixels.len(), image.image_data_length());
@@ -304,9 +302,7 @@ mod tests_rle_rgb {
     #[test]
     fn test_parse_from_file_succeeds() {
         for test_case in super::test_cases_rle().iter() {
-            let filename = test_case.filename;
-            let mut file = File::open(filename).unwrap();
-            let image = TgaImage::parse_from_file(&mut file);
+            let image = TgaImage::parse_from_file(&mut test_case.as_slice());
         
             assert!(image.is_ok());
         }
@@ -319,7 +315,7 @@ mod tests_rle_rgb {
     #[test]
     fn test_parse_from_buffer() {
         for test_case in super::test_cases_rle().iter() {
-            let image = TgaImage::parse_from_buffer(&test_case.raw_image);
+            let image = TgaImage::parse_from_buffer(test_case.as_slice());
         
             assert!(image.is_ok());
         }
@@ -335,7 +331,7 @@ mod tests_rle_rgb {
     #[test]
     fn test_parsed_tga_image_matches_expected_header_data() {
         for test_case in super::test_cases_rle().iter() {
-            let image = TgaImage::parse_from_buffer(&test_case.raw_image).unwrap();
+            let image = TgaImage::parse_from_buffer(test_case.as_slice()).unwrap();
 
             assert_eq!(image.width(), test_case.width);
             assert_eq!(image.height(), test_case.height);
@@ -357,7 +353,7 @@ mod tests_rle_rgb {
     #[test]
     fn test_tga_image_should_have_correct_width_and_height() {
         for test_case in super::test_cases_rle().iter() {
-            let image = TgaImage::parse_from_buffer(&test_case.raw_image).unwrap();
+            let image = TgaImage::parse_from_buffer(test_case.as_slice()).unwrap();
 
             assert_eq!(image.image_data_length(), image.width() * image.height());
         }
@@ -371,11 +367,8 @@ mod tests_rle_rgb {
     #[test]
     fn test_parse_from_buffer_and_parse_from_file_should_have_the_same_contents() {
         for test_case in super::test_cases_rle().iter() {
-            let filename = test_case.filename;
-            let mut file = File::open(filename).unwrap();
-            let image_from_file = TgaImage::parse_from_file(&mut file).unwrap();
-    
-            let image_from_buffer = TgaImage::parse_from_buffer(&test_case.raw_image).unwrap();
+            let image_from_file = TgaImage::parse_from_file(&mut test_case.as_slice()).unwrap();
+            let image_from_buffer = TgaImage::parse_from_buffer(test_case.as_slice()).unwrap();
 
             assert_eq!(image_from_file, image_from_buffer);
         }
@@ -389,10 +382,8 @@ mod tests_rle_rgb {
     #[test]
     fn test_tga_image_pixel_iterator() {
         for test_case in super::test_cases().iter() {
-            let mut file = File::open(test_case.filename).unwrap();
-            let image_from_file = TgaImage::parse_from_file(&mut file).unwrap();
-    
-            let image_from_buffer = TgaImage::parse_from_buffer(&test_case.raw_image).unwrap();
+            let image_from_file = TgaImage::parse_from_file(&mut test_case.as_slice()).unwrap();
+            let image_from_buffer = TgaImage::parse_from_buffer(test_case.as_slice()).unwrap();
 
             let pixels_from_file = image_from_file.pixels();
             let pixels_from_buffer = image_from_buffer.pixels();
@@ -409,9 +400,7 @@ mod tests_rle_rgb {
     #[test]
     fn test_tga_image_iterator_should_return_every_pixel_in_image() {
         for test_case in super::test_cases_rle().iter() {
-            let filename = test_case.filename;
-            let mut file = File::open(filename).unwrap();
-            let image = TgaImage::parse_from_file(&mut file).unwrap();
+            let image = TgaImage::parse_from_file(&mut test_case.as_slice()).unwrap();
             let pixels = image.pixels().collect::<Vec<[u8; 3]>>();
 
             assert_eq!(pixels.len(), image.image_data_length());

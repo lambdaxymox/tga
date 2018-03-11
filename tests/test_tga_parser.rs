@@ -138,7 +138,6 @@ fn test_cases_rle<'a>() -> Test<'a> {
     }
 }
 
-
 #[cfg(test)]
 mod tests_unmapped_rgb {
     use std::fs::File;
@@ -229,6 +228,7 @@ mod tests_unmapped_rgb {
     /// of whether the image came directly from a file, or if it came from a buffer
     /// in memory. Here we do it in another way using an iterator.
     ///
+
     #[test]
     fn test_tga_image_pixel_iterator() {
         for test_case in super::test_cases().iter() {
@@ -237,7 +237,7 @@ mod tests_unmapped_rgb {
 
             let pixels_ff = image_from_file.pixels();
             let pixels_fb = image_from_buffer.pixels();
-
+            
             assert!(pixels_ff.zip(pixels_fb).all(
                 |(pixel_ff, pixel_fb)| {
                     pixel_ff == pixel_fb 
@@ -287,6 +287,7 @@ mod tests_unmapped_rgb {
 
         assert!(pixels.all(|pixel| pixel == first_pixel));
     }
+
 }
 
 #[cfg(test)]
@@ -440,3 +441,21 @@ mod tests_rle_rgb {
     }
 }
 
+#[cfg(test)]
+mod tests_tga_reader {
+    use tga::TgaImage;
+    use tga::TgaReader;
+    use std::io::Read;
+
+    #[test]
+    fn test_tga_reader_should_output_should_match_unmapped_rgb() {
+        for test_case in super::test_cases().iter() {
+            let image = TgaImage::parse_from_buffer(test_case.as_slice()).unwrap();
+            let mut reader = TgaReader::new(&image);
+            let mut buf = vec![0; test_case.as_slice().len()];
+            reader.read(&mut buf).unwrap();
+
+            assert_eq!(buf.as_slice(), test_case.as_slice());
+        }
+    }
+}

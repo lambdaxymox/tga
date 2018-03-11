@@ -1090,7 +1090,7 @@ impl TgaImage {
 }
 
 
-struct TgaReader {
+pub struct TgaReader {
     buffer: [Rc<Vec<u8>>; 5],
     bytes_read_from_buffer: [usize; 5],
     index: usize,
@@ -1098,7 +1098,7 @@ struct TgaReader {
 }
 
 impl TgaReader{
-    fn new(image: &TgaImage) -> TgaReader {
+    pub fn new(image: &TgaImage) -> TgaReader {
         let header = image.header();
         let header_array = Rc::new(vec![
             header.id_length,
@@ -1131,7 +1131,7 @@ impl TgaReader{
         }
     }
 }
-
+/*
 impl io::Read for TgaReader {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let mut bytes_written = 0;
@@ -1159,3 +1159,4 @@ impl io::Read for TgaReader {
         Ok(bytes_written)
     }
 }
+*/

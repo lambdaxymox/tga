@@ -495,12 +495,14 @@ pub struct UncompressedRgb {
 
 impl UncompressedRgb {
     ///
-    /// Parse a unmapped uncompressed TGA image from a buffer in memory. 
+    /// Parse an unmapped uncompressed TGA image from a buffer in memory. 
     /// We assume that the image to be parsed starts at the beginning of the buffer. 
     /// In order to parse correctly, the bytes of the buffer must conform to the TGA 
     /// image format.
     ///
-    pub fn parse_from_buffer(buf: &[u8], header: TgaHeader) -> Result<Self, TgaError> {
+    pub fn parse_from_buffer(buf: &[u8]) -> Result<Self, TgaError> {
+        let header = try!(TgaHeader::parse_from_buffer(buf));
+
         // Check that we were passed the correct TGA header.
         if header.data_type_code != 2 {
             return Err(TgaError::Not24BitRgb(header.data_type_code as usize));
@@ -676,7 +678,9 @@ pub struct RunLengthEncodedRgb {
 }
 
 impl RunLengthEncodedRgb {
-    pub fn parse_from_buffer(buf: &[u8], header: TgaHeader) -> Result<RunLengthEncodedRgb, TgaError> {
+    pub fn parse_from_buffer(buf: &[u8]) -> Result<RunLengthEncodedRgb, TgaError> {
+        let header = try!(TgaHeader::parse_from_buffer(buf));
+        
         // Determine whether we support the image format. We presently
         // support 24 bit unmapped RGB images only. They can either be 
         // uncompressed (type code 2) or run length encoded (type code 10).
@@ -928,10 +932,10 @@ impl TgaImage {
         // support 24 bit unmapped RGB images only. They can either be 
         // uncompressed (type code 2) or run length encoded (type code 10).
         match header.data_type_code {
-            2 => UncompressedRgb::parse_from_buffer(buf, header).map(|image| { 
+            2 => UncompressedRgb::parse_from_buffer(buf).map(|image| { 
                 TgaImage::Type02(image)
             }),
-            10 => RunLengthEncodedRgb::parse_from_buffer(buf, header).map(|image| {
+            10 => RunLengthEncodedRgb::parse_from_buffer(buf).map(|image| {
                 TgaImage::Type10(image)
             }),
             _ => Err(TgaError::Not24BitRgb(header.data_type_code as usize))

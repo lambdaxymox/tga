@@ -1131,32 +1131,30 @@ impl TgaReader{
         }
     }
 }
-/*
+
 impl io::Read for TgaReader {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let mut bytes_written = 0;
         while self.index < self.buffer.len() {
             let diff = self.buffer[self.index].len() - self.bytes_read_from_buffer[self.index];
             let bytes_read_from_buffer = self.bytes_read_from_buffer[self.index];
-            if diff <= buf.len() {
-                for i in 0..diff {
-                    buf[bytes_written + i] = self.buffer[self.index][bytes_read_from_buffer + i];
-                }
-
-                bytes_written += diff;
-                self.bytes_read_from_buffer[self.index] += diff;
-                self.total_bytes_read += diff;
-            } else {
-                for i in 0..buf.len() { 
-                    buf[bytes_written + i] = self.buffer[self.index][bytes_read_from_buffer + i];
-                }
-
-                bytes_written += buf.len();
-                self.bytes_read_from_buffer[self.index] += buf.len();
-                self.total_bytes_read += buf.len();
+            let bytes_to_be_written = match diff <= buf.len() {
+                true => diff,
+                false => buf.len(),
             };
+
+            for i in 0..bytes_to_be_written {
+                buf[bytes_written + i] = self.buffer[self.index][bytes_read_from_buffer + i];
+            }
+
+            bytes_written += bytes_to_be_written;
+            self.bytes_read_from_buffer[self.index] += bytes_to_be_written;
+            self.total_bytes_read += bytes_to_be_written;
+
+            if self.bytes_read_from_buffer[self.index] >= self.buffer[self.index].len() {
+                self.index += 1;
+            }
         }
         Ok(bytes_written)
     }
 }
-*/

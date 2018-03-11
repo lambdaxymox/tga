@@ -448,7 +448,7 @@ mod tests_tga_reader {
     use std::io::Read;
 
     #[test]
-    fn test_tga_reader_should_output_should_match_unmapped_rgb() {
+    fn test_tga_reader_output_should_match_raw_unmapped_rgb_file() {
         for test_case in super::test_cases().iter() {
             let image = TgaImage::parse_from_buffer(test_case.as_slice()).unwrap();
             let mut reader = TgaReader::new(&image);

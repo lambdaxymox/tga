@@ -3,7 +3,6 @@ extern crate tga;
 use std::fs::File;
 use std::slice;
 use std::io::Read;
-use tga::TgaImage;
 
 mod sample;
 
@@ -144,7 +143,6 @@ fn test_cases_rle<'a>() -> Test<'a> {
 mod tests_unmapped_rgb {
     use std::fs::File;
     use tga::TgaImage;
-    use std::io::Read;
     use sample;
 
     ///

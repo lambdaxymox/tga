@@ -57,7 +57,9 @@ pub struct TgaHeader {
 impl TgaHeader {
     ///
     /// Parse a TGA header from a buffer. We assume that the header to be parsed
-    /// starts at the beginning of the buffer.
+    /// starts at the beginning of the buffer. If this is not the case, the
+    /// parser will most likely reject the input since it cannot identify a 
+    /// correct header.
     ///
     #[inline]
     fn parse_from_buffer(buf: &[u8]) -> Result<TgaHeader, TgaError> {
@@ -82,26 +84,6 @@ impl TgaHeader {
         }
 
         Err(TgaError::IncompleteTgaHeader(buf.len(), TGA_HEADER_LENGTH))
-    }
-
-    ///
-    /// Parse a TGA header from a file or other kind of stream. We assume that the header 
-    /// to be parsed starts at the beginning of the buffer. If this is not the case, the
-    /// parser will most likely reject the input since it cannot identify a correct header.
-    ///
-    fn parse_from_file<F: io::Read>(f: &mut F) -> Result<TgaHeader, TgaError> {
-        let mut buf = [0; TGA_HEADER_LENGTH];
-        let offset = match f.read(&mut buf) {
-            Ok(val) => val as usize,
-            Err(_) => return Err(TgaError::CorruptTgaHeader)
-        };
-
-        if offset != TGA_HEADER_LENGTH {
-            return Err(
-                TgaError::IncompleteTgaHeader(offset, TGA_HEADER_LENGTH)
-            );
-        }
-        Self::parse_from_buffer(&buf)
     }
 
     ///

@@ -16,6 +16,13 @@ use std::rc::Rc;
 /// The length of a TGA Header is always 18 bytes.
 pub const TGA_HEADER_LENGTH: usize = 18;
 
+const TGA_FOOTER: [u8; 26] = [
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x54, 0x52, 0x55, 0x45, 0x56, 0x49, 0x53, 0x49,
+    0x4F, 0x4E, 0x2D, 0x58, 0x46, 0x49, 0x4C, 0x45, 
+    0x2E, 0x00
+];
+
 ///
 /// A `TgaHeader` type is a structure containing all the infomation about
 /// a TGA file.
@@ -1077,8 +1084,8 @@ impl TgaImage {
 
 
 pub struct TgaReader {
-    buffer: [Rc<Vec<u8>>; 5],
-    bytes_read_from_buffer: [usize; 5],
+    buffer: [Rc<Vec<u8>>; 6],
+    bytes_read_from_buffer: [usize; 6],
     index: usize,
     total_bytes_read: usize,
 }
@@ -1102,6 +1109,7 @@ impl TgaReader{
         ]);
 
         let inner = image.raw_tga_image();
+        let footer = Rc::new(TGA_FOOTER.to_vec());
 
         TgaReader {
             buffer: [
@@ -1110,8 +1118,9 @@ impl TgaReader{
                 inner.colour_map_data.clone(),
                 inner.image_data.clone(),
                 inner.extended_image_identification.clone(),
+                footer,
             ],
-            bytes_read_from_buffer: [0; 5],
+            bytes_read_from_buffer: [0; 6],
             index: 0,
             total_bytes_read: 0,
         }
@@ -1121,7 +1130,7 @@ impl TgaReader{
 impl io::Read for TgaReader {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let mut bytes_written = 0;
-        while self.index < self.buffer.len() {
+        while (self.index < self.buffer.len()) && (bytes_written < buf.len()) {
             let diff = self.buffer[self.index].len() - self.bytes_read_from_buffer[self.index];
             let bytes_read_from_buffer = self.bytes_read_from_buffer[self.index];
             let bytes_to_be_written = match diff <= buf.len() {

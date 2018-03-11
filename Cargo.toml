@@ -1,10 +1,10 @@
 [package]
-name = "libtga"
-version = "0.2.14"
+name = "tga"
+version = "0.2.15"
 authors = ["Stallmanifold <stallmanifold@gmail.com>"]
 readme = "README.md"
 repository = "https://github.com/stallmanifold/libtga"
-keywords = ["tga"]
+keywords = ["tga", "image processing", "textures", "graphics"]
 
 [lib]
 name = "tga"

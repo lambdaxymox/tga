@@ -1150,6 +1150,7 @@ impl io::Read for TgaReader {
                 self.index += 1;
             }
         }
+
         Ok(bytes_written)
     }
 }

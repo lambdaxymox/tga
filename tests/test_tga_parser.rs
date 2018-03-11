@@ -163,7 +163,7 @@ mod tests_unmapped_rgb {
     /// containing valid TGA data, and parse it into an image.
     ///
     #[test]
-    fn test_parse_from_buffer() {
+    fn test_parse_from_buffer_succeeds() {
         for test_case in super::test_cases().iter() {
             let image = TgaImage::parse_from_buffer(test_case.as_slice());
         
@@ -215,7 +215,7 @@ mod tests_unmapped_rgb {
     /// in memory.
     ///
     #[test]
-    fn test_parse_from_buffer_and_parse_from_file_should_have_the_same_contents() {
+    fn test_parse_from_buffer_and_parse_from_file_should_be_equal() {
         for test_case in super::test_cases().iter() {
             let image_from_file = TgaImage::parse_from_file(&mut test_case.as_slice()).unwrap();
             let image_from_buffer = TgaImage::parse_from_buffer(test_case.as_slice()).unwrap();
@@ -433,10 +433,10 @@ mod tests_rle_rgb {
         let mut file_rle = File::open(sample::LENA_RLE_TGA).unwrap();
         let image_rle = TgaImage::parse_from_file(&mut file_rle).unwrap();
 
-        let mut file = File::open(sample::LENA_RLE_TGA).unwrap();
+        let mut file = File::open(sample::LENA_TGA).unwrap();
         let image = TgaImage::parse_from_file(&mut file).unwrap();
 
-        assert_eq!(image_rle, image);
+        assert_eq!(image_rle.image_data(), image.image_data());
     }
 }
 

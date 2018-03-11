@@ -6,7 +6,7 @@ To use `tga`, add the following line to your `Cargo.toml` file.
 ```toml
 [dependencies]
 # ...
-tga = "0.2.17"
+tga = "0.2.18"
 # ...
 ```
 Then in your `lib.rs`, `main.rs` or wherever your main source file is, add the crate declaration

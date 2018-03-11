@@ -1091,7 +1091,9 @@ impl TgaImage {
 
 
 struct TgaReader {
-    image: [Rc<Vec<u8>>; 5],
+    buffer: [Rc<Vec<u8>>; 5],
+    bytes_read_from_buffer: [usize; 5],
+    index: usize,
     total_bytes_read: usize,
 }
 
@@ -1116,14 +1118,44 @@ impl TgaReader{
         let inner = image.raw_tga_image();
 
         TgaReader {
-            image: [
+            buffer: [
                 header_array, 
                 inner.image_identification.clone(),
                 inner.colour_map_data.clone(),
                 inner.image_data.clone(),
                 inner.extended_image_identification.clone(),
             ],
+            bytes_read_from_buffer: [0; 5],
+            index: 0,
             total_bytes_read: 0,
         }
+    }
+}
+
+impl io::Read for TgaReader {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let mut bytes_written = 0;
+        while self.index < self.buffer.len() {
+            let diff = self.buffer[self.index].len() - self.bytes_read_from_buffer[self.index];
+            let bytes_read_from_buffer = self.bytes_read_from_buffer[self.index];
+            if diff <= buf.len() {
+                for i in 0..diff {
+                    buf[bytes_written + i] = self.buffer[self.index][bytes_read_from_buffer + i];
+                }
+
+                bytes_written += diff;
+                self.bytes_read_from_buffer[self.index] += diff;
+                self.total_bytes_read += diff;
+            } else {
+                for i in 0..buf.len() { 
+                    buf[bytes_written + i] = self.buffer[self.index][bytes_read_from_buffer + i];
+                }
+
+                bytes_written += buf.len();
+                self.bytes_read_from_buffer[self.index] += buf.len();
+                self.total_bytes_read += buf.len();
+            };
+        }
+        Ok(bytes_written)
     }
 }

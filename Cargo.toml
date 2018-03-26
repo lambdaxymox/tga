@@ -1,6 +1,6 @@
 [package]
 name = "tga"
-version = "0.2.18"
+version = "0.2.19"
 authors = ["Stallmanifold <stallmanifold@gmail.com>"]
 readme = "README.md"
 repository = "https://github.com/stallmanifold/libtga"
@@ -12,7 +12,7 @@ name = "tga"
 [dependencies]
 
 [dev-dependencies]
-criterion = "0.2"
+criterion = "0.2.2"
 
 [[bench]]
 name = "benchmark"

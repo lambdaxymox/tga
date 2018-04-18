@@ -1,6 +1,6 @@
 //! # TGA Library
 //!
-//! The library `libtga` is a pure Rust library for reading an writing Truevision
+//! The library `tga` is a pure Rust library for reading and writing Truevision
 //! TARGA format images. The TGA format is capable of representing multiple 
 //! types of bitmapped images including  black and white, indexed colour, RGB
 //! colour, and various compressed representations. The minimal implementation
@@ -363,7 +363,7 @@ impl RawTgaImage {
     ///
     /// The function `image_data_length` returns the size of the image,
     /// in the total number of pixels. This satisfies the following invariant.
-    /// ```
+    /// ```ignore
     /// self.image_data_length() == self.width() * self.height()
     /// ```
     ///
@@ -622,7 +622,7 @@ impl UncompressedRgb {
     ///
     /// The function `image_data_length` returns the size of the image,
     /// in the total number of pixels. This satisfies the following invariant.
-    /// ```
+    /// ```ignore
     /// self.image_data_length() == self.width() * self.height()
     /// ```
     ///
@@ -1031,7 +1031,7 @@ impl TgaImage {
     ///
     /// The function `image_data_length` returns the size of the image,
     /// in the total number of pixels. This satisfies the following invariant.
-    /// ```
+    /// ```ignore
     /// self.image_data_length() == self.width() * self.height()
     /// ```
     ///

@@ -335,7 +335,7 @@ impl RawTgaImage {
 
     /// The function `image_data_length` returns the size of the image,
     /// in the total number of pixels. This satisfies the following invariant.
-    /// ```ignore
+    /// ```text
     /// self.image_data_length() == self.width() * self.height()
     /// ```
     #[inline]
@@ -573,7 +573,7 @@ impl UncompressedRgb {
 
     /// The function `image_data_length` returns the size of the image,
     /// in the total number of pixels. This satisfies the following invariant.
-    /// ```ignore
+    /// ```text
     /// self.image_data_length() == self.width() * self.height()
     /// ```
     #[inline]
@@ -799,7 +799,7 @@ impl RunLengthEncodedRgb {
 
     /// The function `image_data_length` returns the size of the image,
     /// in the total number of pixels. This satisfies the following invariant.
-    /// ```
+    /// ```text
     /// self.image_data_length() == self.width() * self.height()
     /// ```
     #[inline]
@@ -940,7 +940,7 @@ impl TgaImage {
 
     /// The function `image_data_length` returns the size of the image,
     /// in the total number of pixels. This satisfies the following invariant.
-    /// ```ignore
+    /// ```text
     /// self.image_data_length() == self.width() * self.height()
     /// ```
     pub fn image_data_length(&self) -> usize {

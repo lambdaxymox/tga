@@ -4,6 +4,7 @@ version = "0.2.19"
 authors = ["LambdaXymox <lambda.xymox@gmail.com>"]
 readme = "README.md"
 repository = "https://github.com/lambdaxymox/libtga"
+edition = "2018"
 keywords = ["tga", "image processing", "textures", "graphics"]
 
 [lib]

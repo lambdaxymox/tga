@@ -142,12 +142,11 @@ fn test_cases_rle<'a>() -> Test<'a> {
 mod tests_unmapped_rgb {
     use std::fs::File;
     use tga::TgaImage;
-    use sample;
+    use super::sample;
 
-    ///
+
     /// The TGA image parser should be able to take a valid existing TGA
     /// file, and then parse it into an image.
-    ///
     #[test]
     fn test_parse_from_file_succeeds() {
         for test_case in super::test_cases().iter() {
@@ -157,10 +156,8 @@ mod tests_unmapped_rgb {
         }
     }
 
-    ///
     /// The TGA parser should be able to take a buffer in memory
     /// containing valid TGA data, and parse it into an image.
-    ///
     #[test]
     fn test_parse_from_buffer_succeeds() {
         for test_case in super::test_cases().iter() {
@@ -170,13 +167,11 @@ mod tests_unmapped_rgb {
         }
     }
 
-    ///
     /// The TGA image parser should correctly parse the TGA header data.
     /// Given a TGA image with a known height, width, pixel depth, etc.,
     /// The TGA image parser should recognize the exact same parameters from
     /// the file. If there is a failure, either the image is wrong, or the parser
     /// is incorrectly reading the data.
-    ///
     #[test]
     fn test_parsed_tga_image_matches_expected_header_data() {
         for test_case in super::test_cases().iter() {
@@ -190,7 +185,6 @@ mod tests_unmapped_rgb {
         }
     }
 
-    ///
     /// The parsed TGA image should satsify the following invariant.
     /// ```
     /// image.image_data_length() == image.width() * image.height()
@@ -198,7 +192,6 @@ mod tests_unmapped_rgb {
     ///
     /// That is, the image data field of a TGA image should contain every pixel
     /// from the image file, and no more.
-    ///
     #[test]
     fn test_tga_image_should_have_correct_width_and_height() {
         for test_case in super::test_cases().iter() {
@@ -208,11 +201,9 @@ mod tests_unmapped_rgb {
         }
     }
 
-    ///
     /// The TGA image parser should get the same contents from a TGA image regardless
     /// of whether the image came directly from a file, or if it came from a buffer
     /// in memory.
-    ///
     #[test]
     fn test_parse_from_buffer_and_parse_from_file_should_be_equal() {
         for test_case in super::test_cases().iter() {
@@ -223,12 +214,9 @@ mod tests_unmapped_rgb {
         }
     }
 
-    ///
     /// The TGA image parser should get the same contents from a TGA image regardless
     /// of whether the image came directly from a file, or if it came from a buffer
     /// in memory. Here we do it in another way using an iterator.
-    ///
-
     #[test]
     fn test_tga_image_pixel_iterator() {
         for test_case in super::test_cases().iter() {
@@ -260,9 +248,7 @@ mod tests_unmapped_rgb {
         ));
     }
 
-    ///
     /// The TGA image pixel iterator should return every pixel in the image.
-    ///
     #[test]
     fn test_tga_image_iterator_should_return_every_pixel_in_image() {
         for test_case in super::test_cases().iter() {
@@ -273,10 +259,8 @@ mod tests_unmapped_rgb {
         }
     }
 
-    ///
     /// In a TGA image where every pixel has one color, each pixel in the image data
     /// should have exactly the same value.
-    ///
     #[test]
     fn test_tga_image_should_with_one_color_should_return_the_same_color_with_every_pixel() {
         let mut file = File::open(sample::COLOR_TGA).unwrap();
@@ -294,12 +278,10 @@ mod tests_unmapped_rgb {
 mod tests_rle_rgb {
     use std::fs::File;
     use tga::TgaImage;
-    use sample;
+    use super::sample;
 
-    ///
     /// The TGA image parser should be able to take a valid existing TGA
     /// file, and then parse it into an image.
-    ///
     #[test]
     fn test_parse_from_file_succeeds() {
         for test_case in super::test_cases_rle().iter() {
@@ -309,10 +291,8 @@ mod tests_rle_rgb {
         }
     }
 
-    ///
     /// The TGA parser should be able to take a buffer in memory
     /// containing valid TGA data, and parse it into an image.
-    ///
     #[test]
     fn test_parse_from_buffer() {
         for test_case in super::test_cases_rle().iter() {
@@ -322,13 +302,11 @@ mod tests_rle_rgb {
         }
     }
 
-    ///
     /// The TGA image parser should correctly parse the TGA header data.
     /// Given a TGA image with a known height, width, pixel depth, etc.,
     /// The TGA image parser should recognize the exact same parameters from
     /// the file. If there is a failure, either the image is wrong, or the parser
     /// is incorrectly reading the data.
-    ///
     #[test]
     fn test_parsed_tga_image_matches_expected_header_data() {
         for test_case in super::test_cases_rle().iter() {
@@ -342,7 +320,6 @@ mod tests_rle_rgb {
         }
     }
 
-    ///
     /// The parsed TGA image should satsify the following invariant.
     /// ```
     /// image.image_data_length() == image.width() * image.height()
@@ -350,7 +327,6 @@ mod tests_rle_rgb {
     ///
     /// That is, the image data field of a TGA image should contain every pixel
     /// from the image file, and no more.
-    ///
     #[test]
     fn test_tga_image_should_have_correct_width_and_height() {
         for test_case in super::test_cases_rle().iter() {
@@ -360,11 +336,9 @@ mod tests_rle_rgb {
         }
     }
 
-    ///
     /// The TGA image parser should get the same contents from a TGA image regardless
     /// of whether the image came directly from a file, or if it came from a buffer
     /// in memory.
-    ///
     #[test]
     fn test_parse_from_buffer_and_parse_from_file_should_have_the_same_contents() {
         for test_case in super::test_cases_rle().iter() {
@@ -375,11 +349,9 @@ mod tests_rle_rgb {
         }
     }
 
-    ///
     /// The TGA image parser should get the same contents from a TGA image regardless
     /// of whether the image came directly from a file, or if it came from a buffer
     /// in memory. Here we do it in another way using an iterator.
-    ///
     #[test]
     fn test_tga_image_pixel_iterator() {
         for test_case in super::test_cases().iter() {
@@ -397,9 +369,7 @@ mod tests_rle_rgb {
         }
     }
 
-    ///
     /// The TGA image pixel iterator should return every pixel in the image.
-    ///
     #[test]
     fn test_tga_image_iterator_should_return_every_pixel_in_image() {
         for test_case in super::test_cases_rle().iter() {
@@ -410,10 +380,8 @@ mod tests_rle_rgb {
         }
     }
 
-    ///
     /// In a TGA image where every pixel has one color, each pixel in the image data
     /// should have exactly the same value.
-    ///
     #[test]
     fn test_tga_image_should_with_one_color_should_return_the_same_color_with_every_pixel() {
         let mut file = File::open(sample::COLOR_RLE_TGA).unwrap();
@@ -425,10 +393,8 @@ mod tests_rle_rgb {
         assert!(pixels.all(|pixel| pixel == first_pixel));
     }
 
-    /// 
     /// An decoded RLE encoded TGA image should be exactly the same as an uncompressed
     /// RGB image.
-    ///
     #[test]
     fn test_a_decoded_rle_rgb_tga_image_should_be_the_same_as_an_unmapped_one() {
         let mut file_rle = File::open(sample::LENA_RLE_TGA).unwrap();
